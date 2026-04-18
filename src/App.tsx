@@ -209,25 +209,25 @@ Keep the tone very professional and concise.`;
           imageTimeout: 20000,
           removeContainer: true,
           onclone: (clonedDoc) => {
-            // Fix for html2canvas oklab/oklch error with Tailwind v4
-            const elements = clonedDoc.getElementsByTagName('*');
-            for (let i = 0; i < elements.length; i++) {
-              const el = elements[i] as HTMLElement;
-              const computedStyle = window.getComputedStyle(el);
-              
-              // If any property uses oklch or oklab, we try to clear or simplify it
-              // html2canvas fails specifically on these color functions
-              if (computedStyle.color.includes('okl') || computedStyle.backgroundColor.includes('okl')) {
-                el.style.color = '#1e293b'; // Fallback to slate-800
-              }
-              
-              // Check for shadows which often cause this
-              if (computedStyle.boxShadow.includes('okl')) {
-                el.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+          // Force remove any oklab/oklch colors that break html2canvas
+          const elements = clonedDoc.getElementsByTagName('*');
+          for (let i = 0; i < elements.length; i++) {
+            const el = elements[i] as HTMLElement;
+            const style = window.getComputedStyle(el);
+            
+            // ถ้าเจอสีตระกูล ok ทั้งหลาย ให้เปลี่ยนเป็นสีเข้มมาตรฐานแทน
+            if (style.color.includes('okl') || style.backgroundColor.includes('okl')) {
+              el.style.color = '#1e293b'; 
+              if (style.backgroundColor.includes('okl')) {
+                el.style.backgroundColor = '#f8fafc';
               }
             }
+            // ลบเงาที่อาจจะมีปัญหาออกด้วย
+            if (style.boxShadow.includes('okl')) {
+              el.style.boxShadow = 'none';
+            }
           }
-        });
+        }
         
         const imgData = canvas.toDataURL('image/jpeg', 0.9);
         const imgWidth = 277; 
