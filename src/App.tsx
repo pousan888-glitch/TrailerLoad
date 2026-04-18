@@ -30,26 +30,17 @@ import { packCargo } from './utils/packing';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
-const INITIAL_CARGO: CargoItem[] = [
-  { id: '1', type: 'Workshop Container', serialNumber: '09-009', segment: 'Testing', rig: 'COSL GIFT', length: 490, width: 244 },
-  { id: '2', type: '20FT Basket HH', serialNumber: 'BSLU9306781', segment: 'Testing', rig: 'COSL GIFT', length: 606, width: 244 },
-  { id: '3', type: '20FT Basket HH', serialNumber: 'BSLU9306966', segment: 'Testing', rig: 'COSL GIFT', length: 606, width: 244 },
-  { id: '4', type: '20FT Basket HH', serialNumber: 'BSLU9306797', segment: 'Testing', rig: 'COSL GIFT', length: 606, width: 244 },
-  { id: '5', type: 'Gas Rack', serialNumber: 'AORU900022-2', segment: 'Testing', rig: 'COSL GIFT', length: 121, width: 115 },
-  { id: '6', type: 'Gas Rack', serialNumber: 'AORU900030-4', segment: 'Testing', rig: 'COSL GIFT', length: 121, width: 115 },
-  { id: '7', type: 'Gas Rack', serialNumber: 'AORU900041-2', segment: 'Testing', rig: 'COSL GIFT', length: 121, width: 115 },
-];
+const INITIAL_CARGO: CargoItem[] = [];
 
 export default function App() {
-  const [cargo, setCargo] = useState<CargoItem[]>(INITIAL_CARGO);
+  const [projectName, setProjectName] = useState('DECK_LOAD_PLAN');
+  const [cargo, setCargo] = useState<CargoItem[]>([]);
   const [trailerWidth, setTrailerWidth] = useState(250);
   const [trailerLength, setTrailerLength] = useState(1200);
   const [pasteValue, setPasteValue] = useState('');
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [allowOverhang, setAllowOverhang] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editItem, setEditItem] = useState<CargoItem | null>(null);
   const [manualPositions, setManualPositions] = useState<Record<string, { x: number, y: number }>>({});
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [trailerMetadata, setTrailerMetadata] = useState<Record<string, { license: string, driverName: string, driverPhone: string }>>({});
@@ -73,7 +64,7 @@ export default function App() {
     if (newItem.type && newItem.length && newItem.width) {
       setCargo([...cargo, { 
         ...newItem, 
-        id: crypto.randomUUID() 
+        id: Math.random().toString(36).substr(2, 9)
       } as CargoItem]);
       setNewItem({ type: '', serialNumber: '', length: 0, width: 0, rig: 'COSL GIFT', segment: 'Testing' });
     }
@@ -81,24 +72,6 @@ export default function App() {
 
   const handleRemoveItem = (id: string) => {
     setCargo(cargo.filter(item => item.id !== id));
-  };
-
-  const startEditing = (item: CargoItem) => {
-    setEditingId(item.id);
-    setEditItem({ ...item });
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditItem(null);
-  };
-
-  const saveEditing = () => {
-    if (editItem) {
-      setCargo(cargo.map(item => item.id === editItem.id ? editItem : item));
-      setEditingId(null);
-      setEditItem(null);
-    }
   };
 
   const handleClearAll = () => {
@@ -120,7 +93,7 @@ export default function App() {
         const width = parseInt(w);
         if (!isNaN(length) && !isNaN(width)) {
           newItems.push({
-            id: crypto.randomUUID(),
+            id: Math.random().toString(36).substr(2, 9),
             type: type || 'Unknown',
             serialNumber: serial || '-',
             segment: '-',
@@ -140,38 +113,95 @@ export default function App() {
   };
 
   const handlePrint = () => {
-    window.print();
+    try {
+      if (cargo.length === 0) {
+        alert("⚠️ Your manifest is empty. Please add items before printing.");
+        return;
+      }
+      window.print();
+    } catch (err) {
+      console.error("Print failed:", err);
+      alert("Print failed. Please try using a different browser or opening the app in a new tab.");
+    }
   };
 
   const handleDownloadPDF = async () => {
-    if (!reportRef.current) return;
+    if (cargo.length === 0) {
+      alert("⚠️ Your manifest is empty. Please add items before downloading PDF.");
+      return;
+    }
+    
+    if (trailers.length === 0) {
+      alert("⚠️ No trailer layouts generated. Check your cargo dimensions.");
+      return;
+    }
+
+    if (!reportRef.current) {
+      alert("⚠️ Internal Error: Visualization area not found.");
+      return;
+    }
+
     setIsExporting(true);
     
     try {
-      const pdf = new jsPDF('l', 'mm', 'a4'); // 'l' for landscape
+      // Small pause to allow UI to settle
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      const pdf = new jsPDF({
+        orientation: 'landscape',
+        unit: 'mm',
+        format: 'a4'
+      });
+
+      if (!reportRef.current) return;
       const trailersList = reportRef.current.querySelectorAll('.trailer-card');
       
+      if (trailersList.length === 0) {
+         throw new Error("No trailer cards found in view. Try scrolling them into view first.");
+      }
+
       for (let i = 0; i < trailersList.length; i++) {
-        const element = trailersList[i] as HTMLElement;
-        const canvas = await html2canvas(element, {
-          scale: 2,
+        const borderElement = trailersList[i] as HTMLElement;
+        
+        // Ensure element is visible/layouted
+        const canvas = await html2canvas(borderElement, {
+          scale: 1.5,
           useCORS: true,
-          logging: false
+          logging: false,
+          allowTaint: true,
+          backgroundColor: '#FFFFFF',
+          imageTimeout: 20000,
+          removeContainer: true
         });
         
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 277; // A4 landscape width in mm minus margins
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        const imgWidth = 277; 
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
         
         if (i > 0) pdf.addPage('a4', 'l');
-        pdf.text(`Trailer Plan ${i + 1}`, 10, 10);
-        pdf.addImage(imgData, 'PNG', 10, 15, imgWidth, imgHeight);
+        
+        // Add Header
+        pdf.setFontSize(14);
+        pdf.setTextColor(30, 41, 59);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(`PROJECT: ${projectName.toUpperCase()}`, 15, 12);
+        
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(`Trailer Loading Plan - Page ${i + 1}/${trailersList.length}`, 15, 17);
+        pdf.text(`Date: ${new Date().toLocaleDateString()} | Total Items: ${cargo.length}`, 200, 17);
+        
+        // Add Image
+        pdf.addImage(imgData, 'JPEG', 10, 22, imgWidth, Math.min(imgHeight, 170));
       }
       
-      pdf.save(`Trailer_Load_Plan_${new Date().getTime()}.pdf`);
-    } catch (error) {
-      console.error('PDF Export failed:', error);
-      alert('PDF generation failed. Please try the Print > Save as PDF option instead.');
+      const filename = `${projectName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      pdf.save(filename);
+      
+    } catch (error: any) {
+      console.error('PDF Export Error:', error);
+      alert('PDF generation failed: ' + (error.message || 'Unknown error') + '\n\nTIP: Try "Print Layout" > "Save as PDF" as a more reliable alternative.');
     } finally {
       setIsExporting(false);
     }
@@ -196,15 +226,25 @@ export default function App() {
             </div>
             {!isSidebarCollapsed && (
               <div className="min-w-0">
-                <h1 className="font-bold text-lg leading-tight truncate">TrailerLoad Pro</h1>
-                <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Logistics Planner</span>
+                <h1 className="font-bold text-lg leading-tight truncate">TrailerLoad Elite</h1>
+                <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Engineering Edition</span>
               </div>
             )}
           </div>
 
           <div className={`flex-1 overflow-y-auto space-y-6 scrollbar-hide ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
              <section>
-                <h3 className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-4">Master Controls</h3>
+                <h3 className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-4">Project Information</h3>
+                <input 
+                  placeholder="Project Name"
+                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500 transition-colors"
+                  value={projectName}
+                  onChange={e => setProjectName(e.target.value)}
+                />
+             </section>
+
+             <section>
+                <h3 className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-4">Import Manifest</h3>
                 <div className="space-y-3">
                   <div className="relative">
                     <button 
@@ -283,95 +323,41 @@ export default function App() {
 
              <section className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Manifest & Inventory</h3>
+                  <h3 className="text-[10px] text-white/40 uppercase tracking-widest font-bold">Manage Loadlist</h3>
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={handleClearAll}
                       className="text-[10px] text-red-400/60 hover:text-red-400 font-bold uppercase transition-colors"
                     >
-                      Clear
+                      Clear All
                     </button>
                     <span className="text-[10px] bg-slate-800 px-2 py-0.5 rounded text-white/60">{cargo.length} Items</span>
                   </div>
                 </div>
-                <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-500px)] pr-2 scrollbar-thin scrollbar-thumb-slate-700">
+                <div className="space-y-2 overflow-y-auto max-h-[calc(100vh-600px)] pr-2 scrollbar-thin scrollbar-thumb-slate-700">
                   {cargo.length === 0 && (
                     <div className="py-8 text-center border border-dashed border-slate-700 rounded-lg">
                       <p className="text-xs text-white/30 italic">No items in manifest</p>
                     </div>
                   )}
-                  {cargo.map(item => (
-                    <div key={item.id} className="cargo-item rounded-lg p-3 group transition-all">
-                      {editingId === item.id && editItem ? (
-                        <div className="space-y-2">
-                          <input 
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white outline-none focus:border-amber-500"
-                            value={editItem.type}
-                            onChange={e => setEditItem({...editItem, type: e.target.value})}
-                          />
-                          <input 
-                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-white outline-none focus:border-amber-500"
-                            value={editItem.serialNumber}
-                            onChange={e => setEditItem({...editItem, serialNumber: e.target.value})}
-                          />
-                          <div className="grid grid-cols-2 gap-1">
-                            <input 
-                              type="number"
-                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[10px] text-white outline-none focus:border-amber-500"
-                              value={editItem.length}
-                              onChange={e => setEditItem({...editItem, length: Number(e.target.value)})}
-                            />
-                            <input 
-                              type="number"
-                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-[10px] text-white outline-none focus:border-amber-500"
-                              value={editItem.width}
-                              onChange={e => setEditItem({...editItem, width: Number(e.target.value)})}
-                            />
-                          </div>
-                          <div className="flex gap-2 pt-1">
-                            <button 
-                              onClick={saveEditing}
-                              className="flex-1 bg-green-600 hover:bg-green-500 text-white text-[10px] py-1 rounded font-bold"
-                            >
-                              Save
-                            </button>
-                            <button 
-                              onClick={cancelEditing}
-                              className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-[10px] py-1 rounded font-bold"
-                            >
-                              Cancel
-                            </button>
-                          </div>
+                  {cargo.map((item, idx) => (
+                    <div key={item.id} className="cargo-item rounded-lg p-3 bg-slate-800/50 border border-slate-700 group hover:border-amber-500/50 transition-all">
+                      <div className="flex justify-between items-start mb-1">
+                        <div className="min-w-0 pr-2">
+                          <p className="text-xs font-bold truncate text-white">{item.type}</p>
+                          <p className="text-[10px] font-mono text-white/40 truncate">{item.serialNumber}</p>
                         </div>
-                      ) : (
-                        <>
-                          <div className="flex justify-between items-start mb-1">
-                            <div className="min-w-0 pr-2 cursor-pointer grow" onClick={() => startEditing(item)}>
-                              <p className="text-xs font-bold truncate text-white">{item.type}</p>
-                              <p className="text-[10px] font-mono text-white/40 truncate">{item.serialNumber}</p>
-                            </div>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all ml-2">
-                              <button 
-                                onClick={() => startEditing(item)}
-                                className="text-white/30 hover:text-amber-400"
-                                title="Edit Item"
-                              >
-                                <Maximize2 size={12} />
-                              </button>
-                              <button 
-                                onClick={() => handleRemoveItem(item.id)}
-                                className="text-white/30 hover:text-red-400"
-                                title="Remove Item"
-                              >
-                                <Trash2 size={12} />
-                              </button>
-                            </div>
-                          </div>
-                          <div className="text-[10px] text-amber-500/80 font-mono font-bold">
-                            {item.length}cm x {item.width}cm
-                          </div>
-                        </>
-                      )}
+                        <button 
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-all shadow-sm"
+                          title="Delete Item"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                      <div className="text-[10px] text-amber-500/80 font-mono font-bold">
+                        {item.length}cm x {item.width}cm
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -407,9 +393,9 @@ export default function App() {
       <main className="flex-1 flex flex-col bg-[#F0F2F5] p-8 overflow-y-auto">
         <header className="flex justify-between items-end mb-8">
            <div>
-              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">O&G Logistics Planner / Session #429</p>
+              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">PROJECT: {projectName.toUpperCase()}</p>
               <h2 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-4">
-                Standard Flatbed
+                Deck Master Plan System
                 <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 px-3 shadow-sm">
                    <div className="flex flex-col items-center">
                      <span className="text-[9px] text-gray-400 font-bold uppercase">L (cm)</span>
@@ -539,9 +525,9 @@ export default function App() {
                   </div>
                </div>
 
-                <div className="p-16 flex items-center justify-center bg-[#F8FAFC] relative group overflow-x-auto min-h-[400px]">
+                <div className="p-16 flex items-center justify-center bg-slate-900/5 relative group overflow-x-auto min-h-[400px]">
                   <div className="absolute top-6 left-1/2 -translate-x-1/2 px-4 py-1.5 bg-slate-900 border border-slate-700 rounded-full shadow-lg text-[10px] font-black text-white uppercase tracking-widest z-30">
-                    Trailer Bed Length: {trailer.length} cm 
+                    Trailer Bed: {trailer.length} cm 
                   </div>
                   <div className="absolute left-6 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-slate-900 border border-slate-700 rounded-full shadow-lg text-[10px] font-black text-white uppercase tracking-widest [writing-mode:vertical-rl] rotate-180 z-30">
                     Bed Width: {trailer.width} cm
@@ -549,7 +535,7 @@ export default function App() {
 
                   {/* Trailer Bed Rendering - Horizontal Orientation */}
                   <div 
-                    className="trailer-bed shadow-2xl relative rounded transition-all duration-300"
+                    className="trailer-bed shadow-2xl relative rounded transition-all duration-300 bg-slate-900 border-4 border-slate-950"
                     style={{
                        width: `${trailer.length * 0.8}px`,
                        height: `${trailer.width * 0.8}px`,
@@ -567,8 +553,8 @@ export default function App() {
                     <div className="absolute top-1/2 left-0 right-0 h-px bg-white/10 border-t border-dashed border-white/20 z-0" />
 
                     {/* Side Guards to clip vertical overflow (Width) while allowing horizontal (Length) */}
-                    <div className="absolute top-[-1000px] left-[-1000px] right-[-1000px] h-[1000px] bg-[#F8FAFC] z-20 pointer-events-none" />
-                    <div className="absolute bottom-[-1000px] left-[-1000px] right-[-1000px] h-[1000px] bg-[#F8FAFC] z-20 pointer-events-none" />
+                    <div className="absolute top-[-1000px] left-[-1000px] right-[-1000px] h-[1000px] bg-[#F8FAFC]/0 z-20 pointer-events-none" />
+                    <div className="absolute bottom-[-1000px] left-[-1000px] right-[-1000px] h-[1000px] bg-[#F8FAFC]/0 z-20 pointer-events-none" />
 
                     {/* Overhang Buffer Zone (Visual Only) */}
                     {allowOverhang && (
@@ -637,6 +623,18 @@ export default function App() {
                           <div className="absolute inset-x-0 bottom-0 bg-black/10 py-0.5 text-[7px] font-black text-center">
                             {item.length}x{item.width}
                           </div>
+                          
+                          {/* Quick Delete Overlay Button */}
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveItem(item.id);
+                            }}
+                            className="absolute top-0 right-0 bg-red-600 text-white p-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-50 rounded-bl"
+                            title="Delete"
+                          >
+                            <Trash2 size={8} />
+                          </button>
                         </motion.div>
                       );
                     })}
@@ -655,14 +653,38 @@ export default function App() {
                   </div>
                </div>
 
-               <div className="px-8 py-4 bg-gray-50/50 border-t border-gray-100 flex flex-wrap gap-x-6 gap-y-2">
-                  {trailer.items.map(item => (
-                    <div key={item.id} className="flex items-center gap-2 group">
-                       <CornerDownRight size={10} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
-                       <span className="text-[10px] font-bold text-gray-500">{item.serialNumber}</span>
-                       <span className="text-[9px] text-gray-400">{item.type}</span>
-                    </div>
-                  ))}
+               <div className="px-8 py-4 bg-gray-50/50 border-t border-gray-100">
+                  <table className="w-full text-left border-collapse">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Serial Number</th>
+                        <th className="py-2 text-[10px] font-black text-gray-400 uppercase tracking-widest">Cargo Type</th>
+                        <th className="py-1 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">L (cm)</th>
+                        <th className="py-1 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">W (cm)</th>
+                        <th className="py-1 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right no-print">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {trailer.items.map(item => (
+                        <tr key={item.id} className="border-b border-gray-100 last:border-0 hover:bg-white/50 transition-colors group">
+                          <td className="py-2 text-xs font-black text-slate-700">{item.serialNumber}</td>
+                          <td className="py-2 text-[10px] text-gray-500">{item.type}</td>
+                          <td className="py-2 text-[10px] font-mono font-bold text-gray-500 text-right">{item.length}</td>
+                          <td className="py-2 text-[10px] font-mono font-bold text-gray-500 text-right">{item.width}</td>
+                          <td className="py-2 text-right no-print">
+                            <button 
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="p-1 px-2 text-[10px] font-bold text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-all flex items-center gap-1 ml-auto"
+                              title="Delete Item"
+                            >
+                               <Trash2 size={10} />
+                               Delete
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                </div>
             </div>
             );

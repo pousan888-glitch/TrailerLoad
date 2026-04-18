@@ -6,49 +6,55 @@ export function packCargo(
   trailerLength: number = 1200,
   allowOverhang: boolean = false
 ): TrailerPlan[] {
-  const overhangLimit = 150; // 1.5 meters
-  const effectiveLength = allowOverhang ? trailerLength + overhangLimit : trailerLength;
+  const OH_LIMIT = 150; // 1.5m standard overhang
+  const BASKET_LIMIT = 1250; // Special limit for baskets
+  const effectiveLength = allowOverhang ? trailerLength + OH_LIMIT : trailerLength;
   
   const trailers: TrailerPlan[] = [];
-  let currentItems = [...items];
+  let queue = [...items];
 
-  // Strictly Sequential Packing: Maintains the order of the manifest
-  while (currentItems.length > 0) {
+  while (queue.length > 0) {
     const trailerId = `Trailer ${trailers.length + 1}`;
     const placedItems: PlacedItem[] = [];
     let currentY = 0; 
+    let remainingQueue: CargoItem[] = [];
 
-    // We only try to fit items in order starting from the first one in the list
-    while (currentItems.length > 0) {
-      const item = currentItems[0];
-      const actualL = Math.max(item.length, item.width);
-      const actualW = Math.min(item.length, item.width);
+    for (const item of queue) {
+      const isBasket = (item.type + item.serialNumber).toLowerCase().includes('basket');
+      const limit = isBasket ? Math.max(effectiveLength, BASKET_LIMIT) : effectiveLength;
+      
+      const al = Math.max(item.length, item.width);
+      const aw = Math.min(item.length, item.width);
 
-      // If it fits cross-wise
-      if (actualW <= trailerWidth) {
-        // If it fits length-wise (including possible overhang)
-        if (currentY + actualL <= effectiveLength) {
-          placedItems.push({
-            ...item,
-            length: actualL,
-            width: actualW,
-            x: (trailerWidth - actualW) / 2,
-            y: currentY
-          });
-          currentY += actualL;
-          currentItems.shift(); // Remove handled item
-        } else {
-          // Doesn't fit in THIS trailer, must stop and start a new one
-          break;
-        }
+      if (aw <= trailerWidth && (currentY + al) <= limit) {
+        placedItems.push({
+          ...item,
+          length: al,
+          width: aw,
+          x: (trailerWidth - aw) / 2,
+          y: currentY
+        });
+        currentY += al;
       } else {
-        // Item is physically too wide for the trailer, skip it entirely to avoid infinite loop
-        console.warn(`Item ${item.serialNumber} is too wide for the trailer and was skipped.`);
-        currentItems.shift();
+        remainingQueue.push(item);
       }
     }
 
-    if (placedItems.length === 0) break;
+    if (placedItems.length === 0) {
+      // If we couldn't pack even one item but queue isn't empty, 
+      // check if it's because the first item is just too big for any trailer
+      if (queue.length > 0) {
+        const first = queue[0];
+        if (Math.min(first.length, first.width) > trailerWidth) {
+           // Skip it
+           queue.shift();
+           continue;
+        }
+      }
+      break;
+    }
+
+    queue = remainingQueue;
 
     const usedArea = placedItems.reduce((acc, item) => acc + item.length * item.width, 0);
     const totalArea = trailerWidth * trailerLength;
