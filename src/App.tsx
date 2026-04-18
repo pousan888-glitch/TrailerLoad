@@ -208,7 +208,7 @@ Keep the tone very professional and concise.`;
           backgroundColor: '#FFFFFF',
           imageTimeout: 20000,
           removeContainer: true,
-          onclone: (clonedDoc) => {
+         onclone: (clonedDoc) => {
           // Force remove any oklab/oklch colors that break html2canvas
           const elements = clonedDoc.getElementsByTagName('*');
           for (let i = 0; i < elements.length; i++) {
