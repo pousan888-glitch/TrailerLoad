@@ -1,0 +1,6 @@
+{
+  "name": "Trailer Load Optimizer",
+  "description": "Calculate and visualize optimal cargo placement on trailers for Oil & Gas CCUs.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
