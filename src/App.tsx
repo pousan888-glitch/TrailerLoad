@@ -22,9 +22,12 @@ import {
   Download,
   Phone,
   User,
-  Hash
+  Hash,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { GoogleGenAI } from "@google/genai";
 import { CargoItem, TrailerPlan } from './types';
 import { packCargo } from './utils/packing';
 import jsPDF from 'jspdf';
@@ -44,6 +47,8 @@ export default function App() {
   const [manualPositions, setManualPositions] = useState<Record<string, { x: number, y: number }>>({});
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [trailerMetadata, setTrailerMetadata] = useState<Record<string, { license: string, driverName: string, driverPhone: string }>>({});
+  const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
 
   // Form state for manual entry
@@ -112,6 +117,37 @@ export default function App() {
     }
   };
 
+  const generateAIInsights = async () => {
+    if (cargo.length === 0) return;
+    setIsAnalyzing(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = `You are a logistics and safety expert for Oil & Gas cargo loading. 
+Analyze this manifest and trailer plan for project "${projectName}":
+Manifest items: ${JSON.stringify(cargo.map(i => ({ type: i.type, sn: i.serialNumber, dim: `${i.length}x${i.width}` })))}
+Planned Trailers: ${trailers.length} trailers with average efficiency of ${(trailers.reduce((acc, t) => acc + t.fillPercentage, 0) / (trailers.length || 1)).toFixed(1)}%.
+
+Provide a brief, professional technical summary in 2-3 short bullet points. 
+Focus on:
+1. Loading efficiency observation.
+2. Potential risks or grouping tips.
+3. A "Safety Tip" for the deck crew.
+Keep the tone very professional and concise.`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt
+      });
+      
+      setAiAnalysis(response.text);
+    } catch (error) {
+      console.error("AI Analysis Error:", error);
+      setAiAnalysis("Failed to generate AI insights. Please check your configuration.");
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   const handlePrint = () => {
     try {
       if (cargo.length === 0) {
@@ -171,7 +207,26 @@ export default function App() {
           allowTaint: true,
           backgroundColor: '#FFFFFF',
           imageTimeout: 20000,
-          removeContainer: true
+          removeContainer: true,
+          onclone: (clonedDoc) => {
+            // Fix for html2canvas oklab/oklch error with Tailwind v4
+            const elements = clonedDoc.getElementsByTagName('*');
+            for (let i = 0; i < elements.length; i++) {
+              const el = elements[i] as HTMLElement;
+              const computedStyle = window.getComputedStyle(el);
+              
+              // If any property uses oklch or oklab, we try to clear or simplify it
+              // html2canvas fails specifically on these color functions
+              if (computedStyle.color.includes('okl') || computedStyle.backgroundColor.includes('okl')) {
+                el.style.color = '#1e293b'; // Fallback to slate-800
+              }
+              
+              // Check for shadows which often cause this
+              if (computedStyle.boxShadow.includes('okl')) {
+                el.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+              }
+            }
+          }
         });
         
         const imgData = canvas.toDataURL('image/jpeg', 0.9);
@@ -235,12 +290,43 @@ export default function App() {
           <div className={`flex-1 overflow-y-auto space-y-6 scrollbar-hide ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
              <section>
                 <h3 className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-4">Project Information</h3>
-                <input 
-                  placeholder="Project Name"
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500 transition-colors"
-                  value={projectName}
-                  onChange={e => setProjectName(e.target.value)}
-                />
+                <div className="space-y-4">
+                  <input 
+                    placeholder="Project Name"
+                    className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500 transition-colors"
+                    value={projectName}
+                    onChange={e => setProjectName(e.target.value)}
+                  />
+                  
+                  <button 
+                    onClick={generateAIInsights}
+                    disabled={isAnalyzing || cargo.length === 0}
+                    className={`w-full py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-lg
+                      ${isAnalyzing ? 'bg-slate-700 text-white/50 cursor-not-allowed' : 'bg-gradient-to-r from-amber-500 to-orange-600 text-slate-900 hover:scale-[1.02] active:scale-95'}`}
+                  >
+                    {isAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                    {isAnalyzing ? 'Analyzing Manifest...' : 'Get AI Load Insights'}
+                  </button>
+
+                  <AnimatePresence>
+                    {aiAnalysis && (
+                      <motion.div 
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="bg-white/5 border border-white/10 rounded-lg p-3 overflow-hidden"
+                      >
+                        <div className="flex items-center justify-between mb-2 pb-2 border-b border-white/5">
+                          <span className="text-[9px] font-black text-amber-500 uppercase tracking-tighter">AI Insights</span>
+                          <button onClick={() => setAiAnalysis(null)} className="text-[9px] text-white/20 hover:text-white transition-colors uppercase font-bold">Close</button>
+                        </div>
+                        <div className="text-[10px] leading-relaxed text-white/70 space-y-2 whitespace-pre-wrap italic">
+                          {aiAnalysis}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
              </section>
 
              <section>
