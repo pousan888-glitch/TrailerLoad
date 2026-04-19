@@ -137,19 +137,36 @@ export default function App() {
               </div>
               <div className="relative bg-slate-900 rounded-xl overflow-hidden" style={{height: `${t.width*0.5}px`, width: `${t.length*0.5}px`}}>
                 {t.items.map(item => (
-<div key={item.id} className="absolute bg-blue-600 border border-blue-300 text-white flex flex-col items-center justify-center font-bold shadow-inner" 
+<div key={item.id} className="absolute bg-blue-600 border border-blue-300 text-white font-bold shadow-inner overflow-hidden" 
                      style={{
                        left: `${item.y * 0.5}px`, 
                        top: `${item.x * 0.5}px`, 
                        width: `${item.length * 0.5}px`, 
                        height: `${item.width * 0.5}px`,
-                       fontSize: '16px',      // ขนาดฟอนต์พื้นฐาน
-                       lineHeight: '1.2',    // กันตัวอักษรขาดครึ่ง
-                       padding: '4px'        // กันตัวเลขชิดขอบ
+                       padding: '5px'
                      }}>
-                  <div style={{ fontSize: '10px', opacity: 0.8, marginBottom: '2px' }}>{item.type}</div>
-                  <div style={{ fontSize: '20px', letterSpacing: '1px' }}>{item.serialNumber || 'No S/N'}</div>
-                  <div style={{ fontSize: '10px', marginTop: '2px' }}>{item.length}x{item.width}</div>
+                  {/* ประเภทของ - ตัวเล็กอยู่มุมซ้ายบน */}
+                  <div style={{ fontSize: '10px', opacity: 0.8, lineHeight: '1' }}>{item.type}</div>
+                  
+                  {/* Serial Number - ตัวใหญ่มาก วางกลางกล่องแบบใช้ margin */}
+                  <div style={{ 
+                    fontSize: '22px', 
+                    textAlign: 'center', 
+                    width: '100%', 
+                    marginTop: '10px',
+                    lineHeight: '1.2'
+                  }}>
+                    {item.serialNumber || 'No S/N'}
+                  </div>
+                  
+                  {/* ขนาด - ตัวเล็กอยู่มุมขวาล่าง */}
+                  <div style={{ 
+                    fontSize: '10px', 
+                    position: 'absolute', 
+                    bottom: '5px', 
+                    right: '5px',
+                    opacity: 0.9 
+                  }}>{item.length}x{item.width}</div>
                 </div>
                   </div>
                 ))}
