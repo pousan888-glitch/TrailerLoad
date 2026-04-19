@@ -426,8 +426,8 @@ Keep the tone very professional and concise.`;
                             ${isB ? 'bg-amber-400 border-amber-600 text-amber-900' : isR ? 'bg-orange-500 border-orange-700 text-white' : isC ? 'bg-blue-500 border-blue-700 text-white' : 'bg-slate-400 border-slate-500 text-slate-900'}`}
                           style={{left: `${dY*0.8}px`, top: `${dX*0.8}px`, width: `${item.length*0.8}px`, height: `${item.width*0.8}px`}}
                         >
-                          <p className="text-[9px] font-black uppercase truncate w-full text-center">{item.type}</p>
-                          <p className="text-[7px] font-bold opacity-80 truncate w-full text-center">{item.serialNumber}</p>
+                          <p className="text-[12px] font-black uppercase truncate w-full text-center leading-tight">{item.type}</p>
+                          <p className="text-[10px] font-bold opacity-90 truncate w-full text-center">{item.serialNumber}</p>
                           <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id); }} className="absolute top-0 right-0 bg-red-600 text-white p-0.5 opacity-0 group-hover/cargo:opacity-100 transition-opacity"><Trash2 size={8}/></button>
                         </motion.div>
                       );

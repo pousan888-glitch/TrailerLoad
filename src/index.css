@@ -332,25 +332,30 @@ body {
     margin: 10mm;
   }
   
-  /* Kill all layout constraints for print mode */
-  html, body, #root, 
-  div[class*="h-screen"], 
-  main, 
-  [class*="flex-1"],
-  [class*="overflow-hidden"],
-  [class*="overflow-y-auto"] {
+  /* Reset layout constraints for print */
+  * {
+    overflow: visible !important;
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
-    overflow: visible !important;
+  }
+
+  html, body, #root {
     display: block !important;
-    position: relative !important;
+    height: auto !important;
+    overflow: visible !important;
+    background: white !important;
     width: 100% !important;
   }
 
-  /* Specific fix for Tailwind containers */
-  .flex, .flex-col {
+  div.h-screen, 
+  main, 
+  .flex, 
+  .flex-col {
     display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
   }
 
   .sidebar, .no-print, header, button, .absolute.top-10 {
@@ -360,6 +365,7 @@ body {
   main {
     padding: 0 !important;
     margin: 0 !important;
+    width: 100% !important;
   }
 
   .trailer-card {
@@ -367,11 +373,10 @@ body {
     break-inside: avoid-page !important;
     page-break-inside: avoid !important;
     page-break-after: always !important;
-    margin-bottom: 30px !important;
+    margin-bottom: 50px !important;
     border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
-    overflow: visible !important;
-    height: auto !important;
+    background: white !important;
   }
 
   .trailer-bed {
@@ -379,5 +384,6 @@ body {
     background-color: #0f172a !important; 
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    border: 2px solid black !important;
   }
 }
