@@ -83,7 +83,7 @@ export default function App() {
     setIsExporting(true);
     try {
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: '#FFFFFF' });
+      const canvas = await html2canvas(reportRef.current, { scale: 3, useCORS: true, backgroundColor: '#FFFFFF' });
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
       pdf.setFontSize(16);
       pdf.text(`PROJECT: ${projectName}`, 15, 15);
