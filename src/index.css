@@ -332,48 +332,52 @@ body {
     margin: 10mm;
   }
   
-  /* Reset layout constraints for print */
-  html, body, #root, div.h-screen {
+  /* Kill all layout constraints for print mode */
+  html, body, #root, 
+  div[class*="h-screen"], 
+  main, 
+  [class*="flex-1"],
+  [class*="overflow-hidden"],
+  [class*="overflow-y-auto"] {
     height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
     display: block !important;
-    background: white !important;
+    position: relative !important;
+    width: 100% !important;
   }
 
-  .sidebar, .no-print, header, button {
+  /* Specific fix for Tailwind containers */
+  .flex, .flex-col {
+    display: block !important;
+  }
+
+  .sidebar, .no-print, header, button, .absolute.top-10 {
     display: none !important;
   }
 
   main {
     padding: 0 !important;
     margin: 0 !important;
-    width: 100% !important;
-    display: block !important;
-    overflow: visible !important;
   }
 
   .trailer-card {
-    break-inside: avoid !important;
+    display: block !important;
+    break-inside: avoid-page !important;
+    page-break-inside: avoid !important;
     page-break-after: always !important;
-    margin: 0 0 20px 0 !important;
+    margin-bottom: 30px !important;
     border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
-    width: 100% !important;
+    overflow: visible !important;
+    height: auto !important;
   }
 
   .trailer-bed {
     page-break-inside: avoid !important;
-    background-color: #0f172a !important; /* Force dark background for bed in print */
+    background-color: #0f172a !important; 
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-  }
-
-  table {
-    page-break-inside: auto;
-  }
-  
-  tr {
-    page-break-inside: avoid;
-    page-break-after: auto;
   }
 }
