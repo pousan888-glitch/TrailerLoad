@@ -139,17 +139,17 @@ export default function App() {
                 {t.items.map(item => (
 <div key={item.id} className="absolute bg-blue-600 border border-blue-300 text-white flex flex-col items-center justify-center font-bold shadow-inner" 
                      style={{
-                       left:`${item.y*0.5}px`, 
-                       top:`${item.x*0.5}px`, 
-                       width:`${item.length*0.5}px`, 
-                       height:`${item.width*0.5}px`,
-                       fontSize: '16px',      // ขยายขนาดฟอนต์ให้ใหญ่ขึ้นชัดเจน
-                       lineHeight: '1.2',    // ป้องกันตัวอักษรขาดครึ่ง
-                       padding: '4px'        // กันตัวเลขชิดขอบกล่อง
+                       left: `${item.y * 0.5}px`, 
+                       top: `${item.x * 0.5}px`, 
+                       width: `${item.length * 0.5}px`, 
+                       height: `${item.width * 0.5}px`,
+                       fontSize: '16px',      // ขนาดฟอนต์พื้นฐาน
+                       lineHeight: '1.2',    // กันตัวอักษรขาดครึ่ง
+                       padding: '4px'        // กันตัวเลขชิดขอบ
                      }}>
                   <div style={{ fontSize: '10px', opacity: 0.8, marginBottom: '2px' }}>{item.type}</div>
-                  <div style={{ fontSize: '18px', letterSpacing: '1px' }}>{item.serialNumber || 'No S/N'}</div>
-                  <div style={{ fontSize: '9px', marginTop: '2px' }}>{item.length}x{item.width}</div>
+                  <div style={{ fontSize: '20px', letterSpacing: '1px' }}>{item.serialNumber || 'No S/N'}</div>
+                  <div style={{ fontSize: '10px', marginTop: '2px' }}>{item.length}x{item.width}</div>
                 </div>
                   </div>
                 ))}
