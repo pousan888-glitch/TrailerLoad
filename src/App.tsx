@@ -213,7 +213,7 @@ Keep the tone very professional and concise.`;
               if (el instanceof HTMLInputElement && el.value) {
                 const text = clonedDoc.createElement('span');
                 text.innerText = el.value;
-                text.style.fontSize = '10px';
+                text.style.fontSize = '26px';
                 text.style.fontWeight = 'bold';
                 el.parentNode?.replaceChild(text, el);
               }
