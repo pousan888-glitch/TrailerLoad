@@ -333,32 +333,31 @@ body {
   }
   
   /* Reset layout constraints for print */
-  * {
+  html, body, #root, #root > div {
+    height: auto !important;
     overflow: visible !important;
+    display: block !important;
+    background: white !important;
+    width: 100% !important;
+    position: static !important;
+  }
+
+  /* Target the main containers specifically */
+  div.h-screen, 
+  main, 
+  [class*="flex-1"],
+  [class*="overflow-hidden"],
+  [class*="overflow-y-auto"] {
+    display: block !important;
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
-  }
-
-  html, body, #root {
-    display: block !important;
-    height: auto !important;
     overflow: visible !important;
-    background: white !important;
+    position: static !important;
     width: 100% !important;
   }
 
-  div.h-screen, 
-  main, 
-  .flex, 
-  .flex-col {
-    display: block !important;
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: visible !important;
-  }
-
-  .sidebar, .no-print, header, button, .absolute.top-10 {
+  .sidebar, .no-print, header .no-print, button, .absolute.top-10 {
     display: none !important;
   }
 
@@ -370,13 +369,15 @@ body {
 
   .trailer-card {
     display: block !important;
-    break-inside: avoid-page !important;
+    break-inside: avoid !important;
     page-break-inside: avoid !important;
     page-break-after: always !important;
+    break-after: page !important;
     margin-bottom: 50px !important;
     border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
     background: white !important;
+    overflow: visible !important;
   }
 
   .trailer-bed {
@@ -385,5 +386,14 @@ body {
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
     border: 2px solid black !important;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+  
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
   }
 }
