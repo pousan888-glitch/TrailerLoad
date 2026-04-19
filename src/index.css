@@ -331,25 +331,49 @@ body {
     size: landscape;
     margin: 10mm;
   }
-  .sidebar, .no-print, header, footer {
-    display: none !important;
-  }
-  body, main, .main-content {
-    background: white !important;
-    padding: 0 !important;
+  
+  /* Reset layout constraints for print */
+  html, body, #root, div.h-screen {
     height: auto !important;
     overflow: visible !important;
     display: block !important;
+    background: white !important;
   }
+
+  .sidebar, .no-print, header, button {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+
   .trailer-card {
-    break-inside: avoid;
-    margin-bottom: 2rem !important;
+    break-inside: avoid !important;
+    page-break-after: always !important;
+    margin: 0 0 20px 0 !important;
+    border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
-    border: 1px solid #eee !important;
-    page-break-after: always;
     width: 100% !important;
   }
-  .stage, .p-16 {
-    padding: 0.5rem !important;
+
+  .trailer-bed {
+    page-break-inside: avoid !important;
+    background-color: #0f172a !important; /* Force dark background for bed in print */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  table {
+    page-break-inside: auto;
+  }
+  
+  tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
   }
 }
