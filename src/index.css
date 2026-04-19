@@ -332,32 +332,27 @@ body {
     margin: 10mm;
   }
   
-  /* Reset layout constraints for print */
-  html, body, #root, #root > div {
-    height: auto !important;
-    overflow: visible !important;
-    display: block !important;
-    background: white !important;
-    width: 100% !important;
-    position: static !important;
-  }
-
-  /* Target the main containers specifically */
-  div.h-screen, 
-  main, 
-  [class*="flex-1"],
-  [class*="overflow-hidden"],
-  [class*="overflow-y-auto"] {
-    display: block !important;
+  /* Reset ALL layout constraints for print */
+  html, body, #root, #root > div, [data-reactroot] {
     height: auto !important;
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
+    display: block !important;
     position: static !important;
+    background: white !important;
     width: 100% !important;
   }
 
-  .sidebar, .no-print, header .no-print, button, .absolute.top-10 {
+  /* Force every flex container to be blocks for printing */
+  div, section, main, article {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
+  .sidebar, .no-print, header, .absolute.top-10, button, nav {
     display: none !important;
   }
 
@@ -372,7 +367,6 @@ body {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
     page-break-after: always !important;
-    break-after: page !important;
     margin-bottom: 50px !important;
     border: 1px solid #e2e8f0 !important;
     box-shadow: none !important;
