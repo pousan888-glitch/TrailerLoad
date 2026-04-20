@@ -76,6 +76,33 @@ export default function App() {
     setCargo(cargo.filter(item => item.id !== id));
   };
 
+  const handleMoveItemToTrailer = (itemId: string, direction: 'prev' | 'next') => {
+    setCargo(prev => {
+      const item = prev.find(i => i.id === itemId);
+      if (!item) return prev;
+
+      // Find current trailer index
+      let currentIdx = item.manualTrailerIndex;
+      if (currentIdx === undefined) {
+        currentIdx = trailers.findIndex(t => t.items.some(i => i.id === itemId));
+      }
+
+      if (currentIdx === -1) return prev;
+
+      let nextIdx = direction === 'next' ? currentIdx + 1 : currentIdx - 1;
+      if (nextIdx < 0) nextIdx = 0;
+
+      // Reset manual position if moving to a different trailer
+      setManualPositions(pos => {
+        const newPos = { ...pos };
+        delete newPos[itemId];
+        return newPos;
+      });
+
+      return prev.map(i => i.id === itemId ? { ...i, manualTrailerIndex: nextIdx } : i);
+    });
+  };
+
   const handleClearAll = () => {
     if (window.confirm('Clear all items?')) {
       setCargo([]);
@@ -452,7 +479,30 @@ Keep it professional and strictly aligned with SLB safety logic.`;
                         >
                           <p className="text-[14px] font-black uppercase truncate w-full text-center leading-tight">{item.type}</p>
                           <p className="text-[11px] font-bold opacity-100 truncate w-full text-center">{item.serialNumber}</p>
-                          <button onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id); }} className="absolute top-0 right-0 bg-red-600 text-white p-0.5 opacity-0 group-hover/cargo:opacity-100 transition-opacity"><Trash2 size={8}/></button>
+                          
+                          <div className="absolute top-0 right-0 flex gap-0.5 opacity-0 group-hover/cargo:opacity-100 transition-opacity no-print">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleMoveItemToTrailer(item.id, 'prev'); }} 
+                              className="bg-slate-700 text-white p-0.5 hover:bg-slate-600 rounded-bl"
+                              title="Move to Previous Trailer"
+                            >
+                              <ChevronLeft size={10}/>
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleMoveItemToTrailer(item.id, 'next'); }} 
+                              className="bg-slate-700 text-white p-0.5 hover:bg-slate-600"
+                              title="Move to Next Trailer"
+                            >
+                              <ChevronRight size={10}/>
+                            </button>
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleRemoveItem(item.id); }} 
+                              className="bg-red-600 text-white p-0.5 hover:bg-red-500"
+                              title="Delete Item"
+                            >
+                              <Trash2 size={10}/>
+                            </button>
+                          </div>
                         </motion.div>
                       );
                     })}
@@ -464,7 +514,19 @@ Keep it professional and strictly aligned with SLB safety logic.`;
                     <thead className="text-gray-400 uppercase font-black"><tr className="border-b border-gray-200"><th>Series</th><th>Type</th><th className="text-right">Dim (cm)</th><th className="text-right">Weight (kg)</th><th className="text-right no-print">Action</th></tr></thead>
                     <tbody>
                       {trailer.items.map(item => (
-                        <tr key={item.id} className="border-b border-gray-100 last:border-0 hover:bg-white/50"><td className="py-2 font-black">{item.serialNumber}</td><td>{item.type}</td><td className="text-right">{item.length}x{item.width}</td><td className="text-right">{item.weight}</td><td className="text-right no-print"><button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-600 font-bold">Delete</button></td></tr>
+                        <tr key={item.id} className="border-b border-gray-100 last:border-0 hover:bg-white/50">
+                          <td className="py-2 font-black">{item.serialNumber}</td>
+                          <td>{item.type}</td>
+                          <td className="text-right">{item.length}x{item.width}</td>
+                          <td className="text-right">{item.weight}</td>
+                          <td className="text-right no-print">
+                            <div className="flex justify-end gap-2">
+                              <button onClick={() => handleMoveItemToTrailer(item.id, 'prev')} className="text-slate-400 hover:text-slate-600 font-bold">Prev</button>
+                              <button onClick={() => handleMoveItemToTrailer(item.id, 'next')} className="text-slate-400 hover:text-slate-600 font-bold">Next</button>
+                              <button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-600 font-bold ml-2">Delete</button>
+                            </div>
+                          </td>
+                        </tr>
                       ))}
                     </tbody>
                   </table>

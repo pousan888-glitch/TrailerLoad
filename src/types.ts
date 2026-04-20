@@ -7,6 +7,7 @@ export interface CargoItem {
   length: number; // in cm
   width: number;  // in cm
   weight: number; // in kg
+  manualTrailerIndex?: number;
 }
 
 export interface PlacedItem extends CargoItem {
