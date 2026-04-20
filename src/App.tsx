@@ -163,22 +163,35 @@ TRAILER DATA: Capacity ${trailerCapacity}kg per trailer, Dimensions ${trailerWid
 MANIFEST: ${JSON.stringify(cargo.map(i => ({ type: i.type, sn: i.serialNumber, dim: i.length + 'x' + i.width, wt: i.weight + 'kg' })))}
 CURRENT PLAN: ${trailers.length} trailers utilized.
 
-STRICT SLB RULES TO FOLLOW:
-1. WEIGHT & DISTRIBUTION: Capacity check, Max 60% weight on 50% deck length, CoG centered.
-2. EQUIPMENT: Ratchet binds ONLY (No Break-over), Grade 70 chains min 3/8".
-3. WLL: Aggregate WLL must be >= 50% cargo weight. Indirect tie-downs = 100% WLL, Direct = 50% WLL. Forces: 80% fwd, 50% rear, 50% side, 20% up.
-4. QUANTITIES: (Rule for Length/Weight combinations).
-5. SPECIFIC RULES: ISO Containers (Twist locks or X-direct), Wheeled (Direct + blocking), Pipes (Double wrap + dunnage).
-6. FRICTION: Advise friction mats (rubber CoF 0.56).
+STRICT SLB SECUREMENT RULES (MANDATORY):
+1. WEIGHT & DISTRIBUTION: 
+   - Verify Trailer Capacity vs Total Cargo Weight.
+   - 60/50 Rule: Max 60% of cargo weight can be placed on center 50% of trailer deck length.
+   - Aggregate WLL Calculation: Must calculate and show that Aggregate WLL is at least 50% of the cargo weight (e.g., 5,000kg cargo requires 2,500kg Aggregate WLL).
+
+2. EQUIPMENT & FRICTION:
+   - ONLY Ratchet type load binders. 'Break Over' binders are STRICTLY PROHIBITED.
+   - Steel-on-Steel friction (e.g., CCU on Steel Deck) is extremely low (CoF ~0.15). MUST mandate high-friction rubber mats (CoF 0.6) or significantly increase tie-downs.
+   - Minimum Grade 70 "Transport Chain" (3/8" or 10mm).
+
+3. SECURING QUANTITIES:
+   - Min 2 tie-downs for first 3 meters of cargo length, plus 1 tie-down for every additional 3 meters or fraction thereof.
+   - Weight rule: 1 tie-down for every 4,500kg if weight exceeds length rule requirements.
+
+4. CCU / ISO CONTAINER SPECIFICS:
+   - UNLOADED CCU: May use over-the-top straps.
+   - LOADED CCU: STRAPPED OVER ROOF IS PROHIBITED. Must secure using Corner Castings with direct tie-downs in diagonal cross (X-cross) configuration.
+
+5. FORCES: System must withstand: 0.8g Forward, 0.5g Rearward, 0.5g Lateral, 0.2g Upward.
 
 OUTPUT FORMAT (Must be in Thai):
-1. สถานะการจับคู่ (Match Status): [ปลอดภัย / ต้องแก้ไข / ไม่ปลอดภัย]
-2. การกระจายน้ำหนักและตำแหน่ง (Weight Distribution & Positioning)
-3. อุปกรณ์ที่ต้องใช้ (Required Equipment)
-4. วิธีการรัดตรึง (Securing Method)
-5. ข้อควรระวังพิเศษ (Special Precautions)
+1. สรุปความปลอดภัย (Safety Summary): [ปลอดภัย / ต้องแก้ไข / ไม่ปลอดภัย]
+2. การคำนวณ WLL และน้ำหนัก (WLL & Weight Calculations): แสดงการคำนวณ Aggregate WLL ที่ 50% ของน้ำหนักจริง
+3. อุปกรณ์และการจัดการแรงเสียดทาน (Equipment & Friction Management): ระบุเรื่องห้ามใช้ Break-Over และความจำเป็นของแผ่นกันลื่น
+4. วิธีการรัดตรึงตามประเภทสินค้า (Specific Securing Method): เจาะจงเรื่องการรัดตู้ CCU และจำนวนสายรัดตามความยาว
+5. ข้อควรระวังพิเศษสำหรับ SLB (SLB Special Precautions)
 
-Keep it professional and strictly aligned with SLB safety logic.`;
+Keep the technical terminology accurate but the explanation clear for field operators.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -234,6 +247,28 @@ Keep it professional and strictly aligned with SLB safety logic.`;
           allowTaint: true,
           backgroundColor: '#FFFFFF',
           onclone: (clonedDoc) => {
+            // Force cloned document and body to be very wide to prevent viewport clipping
+            clonedDoc.documentElement.style.width = '4000px';
+            clonedDoc.body.style.width = '4000px';
+            clonedDoc.body.style.overflow = 'visible';
+
+            // FIX: Prevent clipping by forcing containers to show all content
+            const cards = clonedDoc.querySelectorAll('.trailer-card');
+            cards.forEach(card => {
+              const c = card as HTMLElement;
+              c.style.overflow = 'visible';
+              c.style.width = 'fit-content';
+              c.style.minWidth = 'fit-content';
+            });
+
+            const scrollCaps = clonedDoc.querySelectorAll('.overflow-x-auto');
+            scrollCaps.forEach(cap => {
+              const c = cap as HTMLElement;
+              c.style.overflow = 'visible';
+              c.style.width = 'fit-content';
+              c.style.display = 'block';
+            });
+
             const allElements = clonedDoc.getElementsByTagName('*');
             for (let j = 0; j < allElements.length; j++) {
               const el = allElements[j] as HTMLElement;
