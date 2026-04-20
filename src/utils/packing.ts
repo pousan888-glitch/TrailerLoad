@@ -4,7 +4,8 @@ export function packCargo(
   items: CargoItem[],
   trailerWidth: number = 250,
   trailerLength: number = 1200,
-  allowOverhang: boolean = false
+  allowOverhang: boolean = false,
+  trailerCapacity: number = 25000
 ): TrailerPlan[] {
   const OH_LIMIT = 150; // 1.5m standard overhang
   const BASKET_LIMIT = 1250; // Special limit for baskets
@@ -17,6 +18,7 @@ export function packCargo(
     const trailerId = `Trailer ${trailers.length + 1}`;
     const placedItems: PlacedItem[] = [];
     let currentY = 0; 
+    let currentWeight = 0;
     let remainingQueue: CargoItem[] = [];
 
     for (const item of queue) {
@@ -26,7 +28,8 @@ export function packCargo(
       const al = Math.max(item.length, item.width);
       const aw = Math.min(item.length, item.width);
 
-      if (aw <= trailerWidth && (currentY + al) <= limit) {
+      // Check both dimensions and capacity
+      if (aw <= trailerWidth && (currentY + al) <= limit && (currentWeight + (item.weight || 0)) <= trailerCapacity) {
         placedItems.push({
           ...item,
           length: al,
@@ -35,18 +38,16 @@ export function packCargo(
           y: currentY
         });
         currentY += al;
+        currentWeight += (item.weight || 0);
       } else {
         remainingQueue.push(item);
       }
     }
 
     if (placedItems.length === 0) {
-      // If we couldn't pack even one item but queue isn't empty, 
-      // check if it's because the first item is just too big for any trailer
       if (queue.length > 0) {
         const first = queue[0];
-        if (Math.min(first.length, first.width) > trailerWidth) {
-           // Skip it
+        if (Math.min(first.length, first.width) > trailerWidth || (first.weight || 0) > trailerCapacity) {
            queue.shift();
            continue;
         }
@@ -64,7 +65,9 @@ export function packCargo(
       items: placedItems,
       width: trailerWidth,
       length: trailerLength,
-      fillPercentage: (usedArea / totalArea) * 100
+      fillPercentage: (usedArea / totalArea) * 100,
+      totalWeight: currentWeight,
+      capacity: trailerCapacity
     });
   }
 

@@ -34,6 +34,7 @@ export default function App() {
   const [cargo, setCargo] = useState<CargoItem[]>([]);
   const [trailerWidth, setTrailerWidth] = useState(250);
   const [trailerLength, setTrailerLength] = useState(1200);
+  const [trailerCapacity, setTrailerCapacity] = useState(25000);
   const [pasteValue, setPasteValue] = useState('');
   const [showPasteModal, setShowPasteModal] = useState(false);
   const [allowOverhang, setAllowOverhang] = useState(false);
@@ -51,21 +52,23 @@ export default function App() {
     serialNumber: '',
     length: 0,
     width: 0,
+    weight: 0,
     rig: 'COSL GIFT',
     segment: 'Testing'
   });
 
   const trailers = useMemo(() => {
-    return packCargo(cargo, trailerWidth, trailerLength, allowOverhang);
-  }, [cargo, trailerWidth, trailerLength, allowOverhang]);
+    return packCargo(cargo, trailerWidth, trailerLength, allowOverhang, trailerCapacity);
+  }, [cargo, trailerWidth, trailerLength, allowOverhang, trailerCapacity]);
 
   const handleAddItem = () => {
     if (newItem.type && newItem.length && newItem.width) {
       setCargo([...cargo, { 
         ...newItem, 
-        id: Math.random().toString(36).substr(2, 9)
+        id: Math.random().toString(36).substr(2, 9),
+        weight: newItem.weight || 0
       } as CargoItem]);
-      setNewItem({ type: '', serialNumber: '', length: 0, width: 0, rig: 'COSL GIFT', segment: 'Testing' });
+      setNewItem({ type: '', serialNumber: '', length: 0, width: 0, weight: 0, rig: 'COSL GIFT', segment: 'Testing' });
     }
   };
 
@@ -87,9 +90,10 @@ export default function App() {
     lines.forEach(line => {
       const parts = line.split('\t');
       if (parts.length >= 4) {
-        const [type, serial, l, w] = parts;
+        const [type, serial, l, w, wt] = parts;
         const length = parseInt(l);
         const width = parseInt(w);
+        const weight = parseInt(wt) || 0;
         if (!isNaN(length) && !isNaN(width)) {
           newItems.push({
             id: Math.random().toString(36).substr(2, 9),
@@ -98,7 +102,8 @@ export default function App() {
             segment: '-',
             rig: '-',
             length,
-            width
+            width,
+            weight
           });
         }
       }
@@ -123,17 +128,30 @@ export default function App() {
       }
 
       const ai = new GoogleGenAI({ apiKey });
-      const prompt = `You are a logistics and safety expert for Oil & Gas cargo loading. 
-Analyze this manifest and trailer plan for project "${projectName}":
-Manifest items: ${JSON.stringify(cargo.map(i => ({ type: i.type, sn: i.serialNumber, dim: `${i.length}x${i.width}` })))}
-Planned Trailers: ${trailers.length} trailers with average efficiency of ${(trailers.reduce((acc, t) => acc + t.fillPercentage, 0) / (trailers.length || 1)).toFixed(1)}%.
+      const prompt = `You are an expert in Heavy Vehicle Cargo Securement, strictly following SLB (Schlumberger) safety standards. 
+Your task is to evaluate the match between a specific cargo and a trailer based on the manifest below and provide a comprehensive, safe loading and securing plan.
 
-Provide a brief, professional technical summary in 2-3 short bullet points. 
-Focus on:
-1. Loading efficiency observation.
-2. Potential risks or grouping tips.
-3. A "Safety Tip" for the deck crew.
-Keep the tone very professional and concise.`;
+PROJECT: "${projectName}"
+TRAILER DATA: Capacity ${trailerCapacity}kg per trailer, Dimensions ${trailerWidth}x${trailerLength}cm.
+MANIFEST: ${JSON.stringify(cargo.map(i => ({ type: i.type, sn: i.serialNumber, dim: i.length + 'x' + i.width, wt: i.weight + 'kg' })))}
+CURRENT PLAN: ${trailers.length} trailers utilized.
+
+STRICT SLB RULES TO FOLLOW:
+1. WEIGHT & DISTRIBUTION: Capacity check, Max 60% weight on 50% deck length, CoG centered.
+2. EQUIPMENT: Ratchet binds ONLY (No Break-over), Grade 70 chains min 3/8".
+3. WLL: Aggregate WLL must be >= 50% cargo weight. Indirect tie-downs = 100% WLL, Direct = 50% WLL. Forces: 80% fwd, 50% rear, 50% side, 20% up.
+4. QUANTITIES: (Rule for Length/Weight combinations).
+5. SPECIFIC RULES: ISO Containers (Twist locks or X-direct), Wheeled (Direct + blocking), Pipes (Double wrap + dunnage).
+6. FRICTION: Advise friction mats (rubber CoF 0.56).
+
+OUTPUT FORMAT (Must be in Thai):
+1. สถานะการจับคู่ (Match Status): [ปลอดภัย / ต้องแก้ไข / ไม่ปลอดภัย]
+2. การกระจายน้ำหนักและตำแหน่ง (Weight Distribution & Positioning)
+3. อุปกรณ์ที่ต้องใช้ (Required Equipment)
+4. วิธีการรัดตรึง (Securing Method)
+5. ข้อควรระวังพิเศษ (Special Precautions)
+
+Keep it professional and strictly aligned with SLB safety logic.`;
 
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
@@ -312,6 +330,7 @@ Keep the tone very professional and concise.`;
                   <input type="number" placeholder="L (cm)" className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.length || ''} onChange={e => setNewItem({...newItem, length: Number(e.target.value)})} />
                   <input type="number" placeholder="W (cm)" className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.width || ''} onChange={e => setNewItem({...newItem, width: Number(e.target.value)})} />
                 </div>
+                <input type="number" placeholder="Weight (kg)" className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.weight || ''} onChange={e => setNewItem({...newItem, weight: Number(e.target.value)})} />
                 <button onClick={handleAddItem} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-2.5 rounded text-sm transition-all">Add to Manifest</button>
              </section>
 
@@ -325,7 +344,7 @@ Keep the tone very professional and concise.`;
                     <div key={item.id} className="rounded-lg p-3 bg-slate-800/50 border border-slate-700 flex justify-between items-center group">
                       <div className="min-w-0 pr-2">
                         <p className="text-xs font-bold text-white truncate">{item.type}</p>
-                        <p className="text-[10px] text-white/40">{item.serialNumber} | {item.length}x{item.width}</p>
+                        <p className="text-[10px] text-white/40">{item.serialNumber} | {item.length}x{item.width} | {item.weight}kg</p>
                       </div>
                       <button onClick={() => handleRemoveItem(item.id)} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-all">
                         <Trash2 size={12} />
@@ -360,6 +379,11 @@ Keep the tone very professional and concise.`;
                    <div className="flex flex-col items-center">
                      <span className="text-[9px] text-gray-400 font-bold uppercase">W</span>
                      <input type="number" value={trailerWidth} onChange={(e) => setTrailerWidth(Number(e.target.value))} className="bg-transparent font-mono text-sm font-black w-10 text-center outline-none" />
+                   </div>
+                   <div className="w-px h-6 bg-gray-100 mx-1"></div>
+                   <div className="flex flex-col items-center">
+                     <span className="text-[9px] text-gray-400 font-bold uppercase">SWL (kg)</span>
+                     <input type="number" value={trailerCapacity} onChange={(e) => setTrailerCapacity(Number(e.target.value))} className="bg-transparent font-mono text-sm font-black w-16 text-center outline-none" />
                    </div>
                 </div>
               </h2>
@@ -396,7 +420,7 @@ Keep the tone very professional and concise.`;
                            {meta.driverPhone && <span>Tel: {meta.driverPhone}</span>}
                          </div>
                          <div className="text-[10px] text-gray-400 font-bold">
-                            {trailer.items.length} Units | {trailer.width}x{trailer.length} cm Bed
+                            {trailer.items.length} Units | {trailer.width}x{trailer.length} cm Bed | Payload: {trailer.totalWeight} / {trailer.capacity} kg
                          </div>
                       </div>
                    </div>
@@ -437,10 +461,10 @@ Keep the tone very professional and concise.`;
 
                 <div className="px-8 py-4 bg-gray-50/50 border-t border-gray-100 text-[10px]">
                   <table className="w-full text-left">
-                    <thead className="text-gray-400 uppercase font-black"><tr className="border-b border-gray-200"><th>Series</th><th>Type</th><th className="text-right">Dim (cm)</th><th className="text-right no-print">Action</th></tr></thead>
+                    <thead className="text-gray-400 uppercase font-black"><tr className="border-b border-gray-200"><th>Series</th><th>Type</th><th className="text-right">Dim (cm)</th><th className="text-right">Weight (kg)</th><th className="text-right no-print">Action</th></tr></thead>
                     <tbody>
                       {trailer.items.map(item => (
-                        <tr key={item.id} className="border-b border-gray-100 last:border-0 hover:bg-white/50"><td className="py-2 font-black">{item.serialNumber}</td><td>{item.type}</td><td className="text-right">{item.length}x{item.width}</td><td className="text-right no-print"><button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-600 font-bold">Delete</button></td></tr>
+                        <tr key={item.id} className="border-b border-gray-100 last:border-0 hover:bg-white/50"><td className="py-2 font-black">{item.serialNumber}</td><td>{item.type}</td><td className="text-right">{item.length}x{item.width}</td><td className="text-right">{item.weight}</td><td className="text-right no-print"><button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-600 font-bold">Delete</button></td></tr>
                       ))}
                     </tbody>
                   </table>
@@ -458,7 +482,7 @@ Keep the tone very professional and concise.`;
             <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
               <div className="px-10 py-8 border-b border-gray-100">
                 <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3"><Maximize2 className="text-amber-500" /> Spreadsheet Import</h2>
-                <p className="text-sm text-gray-500 mt-2">Required order: <span className="font-mono text-blue-600 font-bold text-xs">Type | Serial | Length | Width</span></p>
+                <p className="text-sm text-gray-500 mt-2">Required order: <span className="font-mono text-blue-600 font-bold text-xs">Type | Serial | Length | Width | Weight</span></p>
               </div>
               <div className="p-8"><textarea className="w-full h-64 border-2 border-slate-100 bg-slate-50/50 rounded-2xl p-6 font-mono text-sm outline-none focus:border-amber-500 focus:bg-white transition-all shadow-inner" placeholder="Workshop Container	09-009	Testing	COSL GIFT	490	244..." value={pasteValue} onChange={e => setPasteValue(e.target.value)} /></div>
               <div className="px-10 py-6 bg-slate-50 flex justify-between items-center">

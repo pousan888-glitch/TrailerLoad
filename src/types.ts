@@ -6,6 +6,7 @@ export interface CargoItem {
   rig: string;
   length: number; // in cm
   width: number;  // in cm
+  weight: number; // in kg
 }
 
 export interface PlacedItem extends CargoItem {
@@ -19,4 +20,6 @@ export interface TrailerPlan {
   width: number;
   length: number;
   fillPercentage: number;
+  totalWeight: number;
+  capacity: number;
 }
