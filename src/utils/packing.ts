@@ -9,8 +9,6 @@ export function packCargo(
 ): TrailerPlan[] {
   const OH_LIMIT = 150; // 1.5m standard overhang
   const BASKET_LIMIT = 1250; // Special limit for baskets
-  const effectiveLength = allowOverhang ? trailerLength + OH_LIMIT : trailerLength;
-  
   const trailers: TrailerPlan[] = [];
   let unplacedItems = [...items];
   let currentTrailerIdx = 0;
@@ -50,14 +48,35 @@ export function packCargo(
     const remainingAfterAuto: CargoItem[] = [];
 
     for (const item of automaticItems) {
-      const isBasket = (item.type + item.serialNumber).toLowerCase().includes('basket');
-      const limit = isBasket ? Math.max(effectiveLength, BASKET_LIMIT) : effectiveLength;
-      
       const al = Math.max(item.length, item.width);
       const aw = Math.min(item.length, item.width);
+      const isBasket = (item.type + item.serialNumber).toLowerCase().includes('basket');
+      
+      // Calculate limit for THIS item
+      // Normally it must fit on deck
+      let fits = (currentY + al) <= trailerLength;
+      
+      // If it doesn't fit normally, check for overhang
+      if (!fits && allowOverhang) {
+        const ohLimit = isBasket ? Math.max(OH_LIMIT, BASKET_LIMIT - trailerLength) : OH_LIMIT;
+        const maxAllowedWithOh = trailerLength + ohLimit;
+        
+        // Rules for overhang:
+        // 1. Must start on deck (currentY < trailerLength)
+        // 2. Part on deck must be >= 70% of item length
+        // 3. Total length must be <= maxAllowedWithOh
+        const startsOnDeck = currentY < trailerLength;
+        const deckSupport = trailerLength - currentY;
+        const supportPct = (deckSupport / al) >= 0.7;
+        const withinAbsoluteLimit = (currentY + al) <= maxAllowedWithOh;
+        
+        if (startsOnDeck && supportPct && withinAbsoluteLimit) {
+          fits = true;
+        }
+      }
 
-      // Check if it fits
-      if (aw <= trailerWidth && (currentY + al) <= limit && (currentWeight + (item.weight || 0)) <= trailerCapacity) {
+      // Check if it fits (dimensions + weight)
+      if (aw <= trailerWidth && fits && (currentWeight + (item.weight || 0)) <= trailerCapacity) {
         placedInThisTrailer.push({
           ...item,
           length: al,

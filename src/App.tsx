@@ -498,7 +498,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
                      className={`flex flex-col items-center px-2 py-1 rounded transition-colors ${allowOverhang ? 'bg-amber-50' : 'bg-gray-50'}`}
                    >
                      <span className="text-[8px] text-gray-400 font-bold uppercase">Overhang</span>
-                     <span className={`text-[10px] font-black ${allowOverhang ? 'text-amber-600' : 'text-gray-400'}`}>{allowOverhang ? '1.5M ON' : 'OFF'}</span>
+                     <span className={`text-[10px] font-black ${allowOverhang ? 'text-amber-600' : 'text-gray-400'}`}>{allowOverhang ? '1.5M/70% ON' : 'OFF'}</span>
                    </button>
                 </div>
               </h2>
