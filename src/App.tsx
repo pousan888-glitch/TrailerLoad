@@ -492,6 +492,14 @@ Keep the technical terminology accurate but the explanation clear for field oper
                      <span className="text-[9px] text-gray-400 font-bold uppercase">SWL (kg)</span>
                      <input type="number" value={trailerCapacity} onChange={(e) => setTrailerCapacity(Number(e.target.value))} className="bg-transparent font-mono text-sm font-black w-16 text-center outline-none" />
                    </div>
+                   <div className="w-px h-6 bg-gray-100 mx-1"></div>
+                   <button 
+                     onClick={() => setAllowOverhang(!allowOverhang)}
+                     className={`flex flex-col items-center px-2 py-1 rounded transition-colors ${allowOverhang ? 'bg-amber-50' : 'bg-gray-50'}`}
+                   >
+                     <span className="text-[8px] text-gray-400 font-bold uppercase">Overhang</span>
+                     <span className={`text-[10px] font-black ${allowOverhang ? 'text-amber-600' : 'text-gray-400'}`}>{allowOverhang ? '1.5M ON' : 'OFF'}</span>
+                   </button>
                 </div>
               </h2>
            </div>
@@ -550,7 +558,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
                       return (
                         <motion.div
                           drag dragMomentum={false}
-                          dragConstraints={{left:0, top:0, right: trailer.length*0.8 - item.length*0.8, bottom: trailer.width*0.8 - item.width*0.8}}
+                          dragConstraints={{left:0, top:0, right: (trailer.length + (allowOverhang ? 150 : 0))*0.8 - item.length*0.8, bottom: trailer.width*0.8 - item.width*0.8}}
                           onDragEnd={(_, inf) => setManualPositions(p => ({...p, [item.id]: {x: dX + (inf.offset.y/0.8), y: dY + (inf.offset.x/0.8)}}))}
                           key={item.id}
                           className={`absolute border-2 overflow-visible flex flex-col items-center justify-center p-1 cursor-move transition-all active:scale-95 group/cargo
