@@ -9,6 +9,7 @@ export function packCargo(
 ): TrailerPlan[] {
   const OH_LIMIT = 150; // 1.5m standard overhang
   const BASKET_LIMIT = 1250; // Special limit for baskets
+  const SAFETY_GAP = 7.62; // 3-inch gap between items
   const trailers: TrailerPlan[] = [];
   let unplacedItems = [...items];
   let currentTrailerIdx = 0;
@@ -36,7 +37,7 @@ export function packCargo(
         x: (trailerWidth - aw) / 2,
         y: currentY
       });
-      currentY += al;
+      currentY += al + SAFETY_GAP;
       currentWeight += (item.weight || 0);
       
       // Remove from unplaced
@@ -84,7 +85,7 @@ export function packCargo(
           x: (trailerWidth - aw) / 2,
           y: currentY
         });
-        currentY += al;
+        currentY += al + SAFETY_GAP;
         currentWeight += (item.weight || 0);
       } else {
         remainingAfterAuto.push(item);

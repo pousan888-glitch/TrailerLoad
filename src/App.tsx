@@ -197,6 +197,7 @@ STRICT SLB SECUREMENT RULES (MANDATORY):
    - CoG (Center of Gravity): Must be on longitudinal centerline and as low as possible. Heavy items at the bottom.
    - 60/50 Rule: Max 60% weight on center 50% of deck length.
    - Overhang: Max 1.5 meters from trailer rear. STRICT RULE: At least 70% of the cargo length must be supported on the trailer deck. Strictly PROHIBITED to place cargo on the Tail Roller.
+   - Safety Gap: Maintain a mandatory 3-inch (approx. 7.5cm) gap between all cargo items to ensure safe crane operation and avoid snagging.
    - Blocking: Placing cargo against the front end structure (headboard) or other cargo reduces required tie-down capacity by 50%.
    - Aggregate WLL Calculation: Must calculate and show that Aggregate WLL is at least 50% of the cargo weight.
 
@@ -548,7 +549,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
                      className={`flex flex-col items-center px-2 py-1 rounded transition-colors ${allowOverhang ? 'bg-amber-50' : 'bg-gray-50'}`}
                    >
                      <span className="text-[8px] text-gray-400 font-bold uppercase">Overhang</span>
-                     <span className={`text-[10px] font-black ${allowOverhang ? 'text-amber-600' : 'text-gray-400'}`}>{allowOverhang ? '1.5M/70% ON' : 'OFF'}</span>
+                     <span className={`text-[10px] font-black ${allowOverhang ? 'text-amber-600' : 'text-gray-400'}`}>{allowOverhang ? '1.5M / 70% / 3" GAP' : 'OFF'}</span>
                    </button>
                 </div>
               </h2>
@@ -597,6 +598,15 @@ Keep the technical terminology accurate but the explanation clear for field oper
 
                 <div className="p-8 flex items-center justify-center bg-slate-900/5 relative group overflow-x-auto min-h-[400px]">
                   <div className="trailer-bed shadow-2xl relative rounded bg-slate-900 border-4 border-slate-950" style={{width: `${trailer.length*0.8}px`, height: `${trailer.width*0.8}px`, overflow: allowOverhang ? 'visible' : 'hidden'}}>
+                    {/* Ruler / Meter Markers */}
+                    <div className="absolute -top-6 left-0 flex w-full no-print">
+                      {Array.from({ length: Math.floor(trailer.length / 100) + 1 }).map((_, idx) => (
+                        <div key={idx} className="absolute flex flex-col items-center" style={{ left: `${idx * 100 * 0.8}px` }}>
+                          <span className="text-[10px] font-black text-slate-400 leading-none mb-1">{idx}</span>
+                          <div className="w-px h-2 bg-slate-400/30"></div>
+                        </div>
+                      ))}
+                    </div>
                     <div className="absolute inset-0 opacity-5 pointer-events-none" style={{backgroundImage: 'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)', backgroundSize: '25px 25px'}}></div>
                     {trailer.items.map((item, i) => {
                       const mPos = manualPositions[item.id];
@@ -609,6 +619,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
                       const onDeckLength = Math.max(0, trailer.length - dY);
                       const supportPct = Math.min(100, (onDeckLength / item.length) * 100);
                       const isOverhanging = dY + item.length > trailer.length;
+                      const overhangDist = Math.max(0, (dY + item.length) - trailer.length);
                       
                       return (
                         <motion.div
@@ -629,9 +640,12 @@ Keep the technical terminology accurate but the explanation clear for field oper
                           <p className="text-[11px] font-bold opacity-100 truncate w-full text-center">{item.serialNumber}</p>
                           
                           {isOverhanging && (
-                            <div className="absolute -bottom-5 left-0 w-full flex justify-center">
-                              <span className={`text-[9px] font-black px-1 rounded shadow-sm ${supportPct < 70 ? 'bg-red-500 text-white' : 'bg-white text-slate-900'}`}>
+                            <div className="absolute -bottom-5 left-0 w-full flex flex-col items-center gap-0.5">
+                              <span className={`text-[9px] font-black px-1 rounded shadow-sm whitespace-nowrap ${supportPct < 70 ? 'bg-red-500 text-white' : 'bg-white text-slate-900'}`}>
                                 SUPPORT: {supportPct.toFixed(0)}%
+                              </span>
+                              <span className="text-[9px] font-black bg-slate-900 text-amber-500 px-1 rounded border border-amber-500/30 whitespace-nowrap">
+                                OH: {(overhangDist/100).toFixed(2)}m
                               </span>
                             </div>
                           )}
