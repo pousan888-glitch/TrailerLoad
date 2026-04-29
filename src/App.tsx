@@ -165,31 +165,37 @@ CURRENT PLAN: ${trailers.length} trailers utilized.
 
 STRICT SLB SECUREMENT RULES (MANDATORY):
 1. WEIGHT & DISTRIBUTION: 
-   - Verify Trailer Capacity vs Total Cargo Weight.
-   - 60/50 Rule: Max 60% of cargo weight can be placed on center 50% of trailer deck length.
-   - Aggregate WLL Calculation: Must calculate and show that Aggregate WLL is at least 50% of the cargo weight (e.g., 5,000kg cargo requires 2,500kg Aggregate WLL).
+   - CoG (Center of Gravity): Must be on longitudinal centerline and as low as possible. Heavy items at the bottom.
+   - 60/50 Rule: Max 60% weight on center 50% of deck length.
+   - Overhang: Max 1.5 meters from trailer rear. Strictly PROHIBITED to place cargo on the Tail Roller.
+   - Blocking: Placing cargo against the front end structure (headboard) or other cargo reduces required tie-down capacity by 50%.
+   - Aggregate WLL Calculation: Must calculate and show that Aggregate WLL is at least 50% of the cargo weight.
 
 2. EQUIPMENT & FRICTION:
-   - ONLY Ratchet type load binders. 'Break Over' binders are STRICTLY PROHIBITED.
-   - Steel-on-Steel friction (e.g., CCU on Steel Deck) is extremely low (CoF ~0.15). MUST mandate high-friction rubber mats (CoF 0.6) or significantly increase tie-downs.
-   - Minimum Grade 70 "Transport Chain" (3/8" or 10mm).
+   - ONLY Ratchet type load binders. 'Break Over' binders are PROHIBITED.
+   - Wood Dunnage: Width must ALWAYS be greater than height. Never place wood vertically.
+   - Friction Mats: Mandatory under all items. Steel-on-Steel (0.26 CoF) vs Rubber Mats (0.56 CoF). Note: Total securement load is reduced when using rubber mats.
+   - Grade 70 chains minimum 3/8" (10mm).
 
-3. SECURING QUANTITIES:
-   - Min 2 tie-downs for first 3 meters of cargo length, plus 1 tie-down for every additional 3 meters or fraction thereof.
-   - Weight rule: 1 tie-down for every 4,500kg if weight exceeds length rule requirements.
+3. SPECIFIC CARGO HANDLING:
+   - ISO Containers / CCUs: Use Twist locks (max 12mm horiz/10mm vert play) or X-pattern Direct Tie-down. LOADED units = TOP STRAPPING PROHIBITED.
+   - Wheeled Equipment: Direct tie-downs plus wheel blocking (wooden blocks) is mandatory.
+   - Round Pipes: Must be on dunnage, aligned (not staggered), pushed against headboard. Double wrap for loose pipes. Secure each layer.
+   - Pallets / Big Bags (FIBC): Arrange tightly (bundling). Pyramid stacking (1 unit on top of 4 bottom units). Min 2 straps for front/back rows, 1 strap for middle.
 
-4. CCU / ISO CONTAINER SPECIFICS:
-   - UNLOADED CCU: May use over-the-top straps.
-   - LOADED CCU: STRAPPED OVER ROOF IS PROHIBITED. Must secure using Corner Castings with direct tie-downs in diagonal cross (X-cross) configuration.
+4. SECURING QUANTITIES:
+   - Min 2 tie-downs for first 3 meters, plus 1 for every additional 3 meters or fraction.
+   - Weight rule: 1 tie-down for every 4,500kg if weight rule > length rule.
 
-5. FORCES: System must withstand: 0.8g Forward, 0.5g Rearward, 0.5g Lateral, 0.2g Upward.
+5. FORCES (Dynamics): System must withstand: 0.8g Forward (Braking), 0.5g Rearward (Acceleration), 0.5g Lateral (Cornering), 0.2g Upward (Bumps).
 
 OUTPUT FORMAT (Must be in Thai):
 1. สรุปความปลอดภัย (Safety Summary): [ปลอดภัย / ต้องแก้ไข / ไม่ปลอดภัย]
-2. การคำนวณ WLL และน้ำหนัก (WLL & Weight Calculations): แสดงการคำนวณ Aggregate WLL ที่ 50% ของน้ำหนักจริง
-3. อุปกรณ์และการจัดการแรงเสียดทาน (Equipment & Friction Management): ระบุเรื่องห้ามใช้ Break-Over และความจำเป็นของแผ่นกันลื่น
-4. วิธีการรัดตรึงตามประเภทสินค้า (Specific Securing Method): เจาะจงเรื่องการรัดตู้ CCU และจำนวนสายรัดตามความยาว
-5. ข้อควรระวังพิเศษสำหรับ SLB (SLB Special Precautions)
+2. การจัดวางและการกระจายน้ำหนัก (Positioning & Weight Distribution): วิเคราะห์ CoG, กฎ 60/50 และการยื่นเหลื่อม (Overhang/Tail Roller)
+3. การคำนวณ WLL และจำนวนสายรัด (WLL & Tie-down Calculation): แสดงการคำนวณ aggregate WLL 50% และจำนวนสายรัดตามกฎความยาว/น้ำหนัก
+4. อุปกรณ์และการจัดการแรงเสียดทาน (Equipment & Friction): เน้นเรื่องแผ่นยางรอง (Friction Mats) และการจัดวางไม้หมอน (Dunnage)
+5. วิธีการรัดตรึงเฉพาะทาง (Specific Securing Strategy): เจาะจงตามประเภทสินค้า (ตู้ CCU, ท่อ, รถล้อ) ตามกฎ SLB
+6. ข้อควรระวังพิเศษสำหรับ SLB (SLB Critical Precautions)
 
 Keep the technical terminology accurate but the explanation clear for field operators.`;
 
@@ -231,79 +237,21 @@ Keep the technical terminology accurate but the explanation clear for field oper
       // Allow UI to stabilize and ensure fonts are ready
       await new Promise(r => setTimeout(r, 800));
       const pdf = new jsPDF({ 
-        orientation: 'landscape', 
+        orientation: 'portrait', 
         unit: 'mm', 
         format: 'a4',
         compress: true 
       });
-      const trailersList = reportRef.current.querySelectorAll('.trailer-card');
       
-      for (let i = 0; i < trailersList.length; i++) {
-        const element = trailersList[i] as HTMLElement;
-        const canvas = await html2canvas(element, {
-          scale: 2.2, // Higher scale for text clarity
-          useCORS: true,
-          logging: false,
-          allowTaint: true,
-          backgroundColor: '#FFFFFF',
-          onclone: (clonedDoc) => {
-            // Force cloned document and body to be very wide to prevent viewport clipping
-            clonedDoc.documentElement.style.width = '4000px';
-            clonedDoc.body.style.width = '4000px';
-            clonedDoc.body.style.overflow = 'visible';
-
-            // FIX: Prevent clipping by forcing containers to show all content
-            const cards = clonedDoc.querySelectorAll('.trailer-card');
-            cards.forEach(card => {
-              const c = card as HTMLElement;
-              c.style.overflow = 'visible';
-              c.style.width = 'fit-content';
-              c.style.minWidth = 'fit-content';
-            });
-
-            const scrollCaps = clonedDoc.querySelectorAll('.overflow-x-auto');
-            scrollCaps.forEach(cap => {
-              const c = cap as HTMLElement;
-              c.style.overflow = 'visible';
-              c.style.width = 'fit-content';
-              c.style.display = 'block';
-            });
-
-            const allElements = clonedDoc.getElementsByTagName('*');
-            for (let j = 0; j < allElements.length; j++) {
-              const el = allElements[j] as HTMLElement;
-              const style = window.getComputedStyle(el);
-              
-              // Handle OKLAB/OKLCH fallback
-              const isModern = (v: string) => v.includes('oklch') || v.includes('oklab');
-              if (isModern(style.color)) el.style.color = '#1e293b';
-              if (isModern(style.backgroundColor)) el.style.backgroundColor = '#ffffff';
-              if (isModern(style.borderColor)) el.style.borderColor = '#e2e8f0';
-              if (isModern(style.boxShadow)) el.style.boxShadow = 'none';
-
-              // FIX: Text clipping by forcing block display and line-height
-              if (el.tagName === 'P' || el.tagName === 'SPAN') {
-                el.style.display = 'block';
-                el.style.lineHeight = '1.1';
-                el.style.overflow = 'visible';
-                el.style.height = 'auto';
-              }
-              
-              // Ensure input values are visible as text in PDF
-              if (el instanceof HTMLInputElement && el.value) {
-                const text = clonedDoc.createElement('span');
-                text.innerText = el.value;
-                text.style.fontSize = '26px';
-                text.style.fontWeight = 'bold';
-                el.parentNode?.replaceChild(text, el);
-              }
-            }
-          }
-        });
+      const trailersList = reportRef.current.querySelectorAll('.trailer-card');
+      const totalPages = Math.ceil(trailersList.length / 2);
+      
+      for (let i = 0; i < trailersList.length; i += 2) {
+        if (i > 0) pdf.addPage('a4', 'p');
         
-        const imgData = canvas.toDataURL('image/jpeg', 0.9);
-        if (i > 0) pdf.addPage('a4', 'l');
+        const pageNum = Math.floor(i / 2) + 1;
         
+        // Page Header
         pdf.setFontSize(14);
         pdf.setTextColor(30, 41, 59);
         pdf.setFont('helvetica', 'bold');
@@ -311,12 +259,109 @@ Keep the technical terminology accurate but the explanation clear for field oper
         
         pdf.setFontSize(9);
         pdf.setTextColor(100, 116, 139);
-        pdf.text(`Loading Deck Plan - Page ${i + 1}/${trailersList.length} | Date: ${new Date().toLocaleDateString()}`, 15, 17);
+        pdf.text(`Loading Deck Plan - Page ${pageNum}/${totalPages} | Date: ${new Date().toLocaleDateString()}`, 15, 17);
+
+        // Utility to capture element
+        const capture = async (el: HTMLElement) => {
+          return await html2canvas(el, {
+            scale: 2.5,
+            useCORS: true,
+            logging: false,
+            allowTaint: true,
+            backgroundColor: '#FFFFFF',
+            onclone: (clonedDoc) => {
+              clonedDoc.documentElement.style.width = '5000px';
+              clonedDoc.body.style.width = '5000px';
+              clonedDoc.body.style.overflow = 'visible';
+              
+              const cards = clonedDoc.querySelectorAll('.trailer-card');
+              cards.forEach(card => {
+                (card as HTMLElement).style.overflow = 'visible';
+                (card as HTMLElement).style.width = 'fit-content';
+                (card as HTMLElement).style.minWidth = 'fit-content';
+                (card as HTMLElement).style.boxShadow = 'none';
+              });
+
+              const scrollCaps = clonedDoc.querySelectorAll('.overflow-x-auto');
+              scrollCaps.forEach(cap => {
+                (cap as HTMLElement).style.overflow = 'visible';
+                (cap as HTMLElement).style.width = 'fit-content';
+                (cap as HTMLElement).style.display = 'block';
+              });
+
+              const allElements = clonedDoc.getElementsByTagName('*');
+              for (let j = 0; j < allElements.length; j++) {
+                const el = allElements[j] as HTMLElement;
+                const style = window.getComputedStyle(el);
+                const isModern = (v: string) => v.includes('oklch') || v.includes('oklab');
+                if (isModern(style.color)) el.style.color = '#1e293b';
+                if (isModern(style.backgroundColor)) el.style.backgroundColor = '#ffffff';
+                if (isModern(style.borderColor)) el.style.borderColor = '#e2e8f0';
+                if (isModern(style.boxShadow)) el.style.boxShadow = 'none';
+
+                if (el.tagName === 'P' || el.tagName === 'SPAN') {
+                  el.style.display = 'block'; el.style.lineHeight = '1.1'; el.style.overflow = 'visible'; el.style.height = 'auto';
+                }
+                
+                if (el instanceof HTMLInputElement && el.value) {
+                  const text = clonedDoc.createElement('span');
+                  text.innerText = el.value; 
+                  text.style.fontSize = (el.classList.contains('text-[10px]')) ? '12px' : '26px'; 
+                  text.style.fontWeight = 'bold';
+                  el.parentNode?.replaceChild(text, el);
+                }
+
+                // Force print labels to show in PDF and hide no-print elements
+                if (el.classList.contains('print:flex')) {
+                  el.style.display = 'flex';
+                  el.style.visibility = 'visible';
+                  el.style.marginBottom = '8px'; // Add some space
+                }
+                if (el.classList.contains('no-print')) {
+                  el.style.display = 'none';
+                }
+              }
+            }
+          });
+        };
+
+        // Capture first trailer
+        const canvas1 = await capture(trailersList[i] as HTMLElement);
+        const imgData1 = canvas1.toDataURL('image/jpeg', 0.85);
+        const imgProps1 = pdf.getImageProperties(imgData1);
         
-        const imgProps = pdf.getImageProperties(imgData);
-        const pdfW = 277;
-        const pdfH = (imgProps.height * pdfW) / imgProps.width;
-        pdf.addImage(imgData, 'JPEG', 10, 22, pdfW, pdfH);
+        let pdfW = 180; // Fit portrait width
+        let pdfH1 = (imgProps1.height * pdfW) / imgProps1.width;
+        
+        // Handle second trailer if any
+        let imgData2 = null;
+        let pdfH2 = 0;
+        if (i + 1 < trailersList.length) {
+          const canvas2 = await capture(trailersList[i+1] as HTMLElement);
+          imgData2 = canvas2.toDataURL('image/jpeg', 0.85);
+          const imgProps2 = pdf.getImageProperties(imgData2);
+          pdfH2 = (imgProps2.height * pdfW) / imgProps2.width;
+
+          // If total height exceeds page (297mm), scale down
+          const totalH = 22 + pdfH1 + 5 + pdfH2;
+          if (totalH > 270) {
+            const factor = 243 / (pdfH1 + pdfH2);
+            pdfW *= factor;
+            pdfH1 *= factor;
+            pdfH2 *= factor;
+          }
+          
+          pdf.addImage(imgData1, 'JPEG', 15, 22, pdfW, pdfH1);
+          pdf.addImage(imgData2, 'JPEG', 15, 22 + pdfH1 + 5, pdfW, pdfH2);
+        } else {
+          // Only one trailer on this page
+          if (pdfH1 > 250) {
+            const factor = 250 / pdfH1;
+            pdfW *= factor;
+            pdfH1 *= factor;
+          }
+          pdf.addImage(imgData1, 'JPEG', 15, 22, pdfW, pdfH1);
+        }
       }
       
       pdf.save(`${projectName.replace(/\s+/g, '_')}_LOAD_PLAN.pdf`);
@@ -477,9 +522,9 @@ Keep the technical terminology accurate but the explanation clear for field oper
                             </div>
                          </div>
                          <div className="hidden print:flex gap-4 text-[10px] text-slate-600 font-bold mb-1">
-                           {meta.license && <span>Plate: {meta.license}</span>}
-                           {meta.driverName && <span>Driver: {meta.driverName}</span>}
-                           {meta.driverPhone && <span>Tel: {meta.driverPhone}</span>}
+                           <span>ทะเบียน: {meta.license || '-'}</span>
+                           <span>คนขับ: {meta.driverName || '-'}</span>
+                           <span>โทร: {meta.driverPhone || '-'}</span>
                          </div>
                          <div className="text-[10px] text-gray-400 font-bold">
                             {trailer.items.length} Units | {trailer.width}x{trailer.length} cm Bed | Payload: {trailer.totalWeight} / {trailer.capacity} kg
