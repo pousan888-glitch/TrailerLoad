@@ -27,6 +27,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from "@google/genai";
 import { CargoItem, TrailerPlan } from './types';
 import { packCargo } from './utils/packing';
+import { translations, Language } from './translations';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -42,6 +43,8 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [manualPositions, setManualPositions] = useState<Record<string, { x: number, y: number }>>({});
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [lang, setLang] = useState<Language>('th');
+  const t = translations;
 
   const handleSidebarItemDragEnd = (itemId: string, event: any, info: any) => {
     setDraggedItemId(null);
@@ -134,7 +137,7 @@ export default function App() {
   };
 
   const handleClearAll = () => {
-    if (window.confirm('Clear all items?')) {
+    if (window.confirm(t[lang].confirmClear)) {
       setCargo([]);
       setManualPositions({});
     }
@@ -251,7 +254,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
   const handlePrint = () => {
     try {
       if (cargo.length === 0) {
-        alert("⚠️ Your manifest is empty.");
+        alert(t[lang].manifestEmpty);
         return;
       }
       window.print();
@@ -262,7 +265,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
 
   const handleDownloadPDF = async () => {
     if (cargo.length === 0 || !reportRef.current) {
-        alert("⚠️ Inventory is empty.");
+        alert(t[lang].inventoryEmpty);
         return;
     }
 
@@ -419,21 +422,27 @@ Keep the technical terminology accurate but the explanation clear for field oper
         </button>
 
         <div className={`flex flex-col h-full ${isSidebarCollapsed ? 'items-center py-6' : 'p-6'}`}>
+          <div className="flex justify-between items-center mb-4 no-print">
+             <div className="flex gap-1 bg-slate-800 p-0.5 rounded-lg border border-slate-700">
+                <button onClick={() => setLang('en')} className={`px-2 py-1 text-[9px] font-black rounded ${lang === 'en' ? 'bg-amber-500 text-slate-900' : 'text-white/40'}`}>EN</button>
+                <button onClick={() => setLang('th')} className={`px-2 py-1 text-[9px] font-black rounded ${lang === 'th' ? 'bg-amber-500 text-slate-900' : 'text-white/40'}`}>TH</button>
+             </div>
+          </div>
           <div className={`flex items-center gap-3 mb-8 ${isSidebarCollapsed ? 'opacity-0 h-0' : 'opacity-100'}`}>
             <div className="w-10 h-10 bg-amber-500 rounded flex items-center justify-center font-black text-slate-900">TL</div>
             {!isSidebarCollapsed && (
               <div>
                 <h1 className="font-bold text-lg leading-tight">TrailerLoad Elite</h1>
-                <span className="text-[10px] text-white/40 uppercase font-bold">Engineering Edition</span>
+                <span className="text-[10px] text-white/40 uppercase font-bold">{t[lang].engineeringEdition}</span>
               </div>
             )}
           </div>
 
           <div className={`flex-1 overflow-y-auto space-y-6 scrollbar-hide ${isSidebarCollapsed ? 'hidden' : 'block'}`}>
              <section className="space-y-4">
-                <h3 className="text-[10px] text-white/40 uppercase font-bold">Project Information</h3>
+                <h3 className="text-[10px] text-white/40 uppercase font-bold">{t[lang].projectInformation}</h3>
                 <input 
-                  placeholder="Project Name"
+                  placeholder={t[lang].projectNamePlaceholder}
                   className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500"
                   value={projectName}
                   onChange={e => setProjectName(e.target.value)}
@@ -444,12 +453,12 @@ Keep the technical terminology accurate but the explanation clear for field oper
                   className={`w-full py-2.5 rounded-lg text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all ${isAnalyzing ? 'bg-slate-700 text-white/50' : 'bg-gradient-to-r from-amber-500 to-orange-600 text-slate-900'}`}
                 >
                   {isAnalyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                  {isAnalyzing ? 'Analyzing...' : 'Get AI Load Insights'}
+                  {isAnalyzing ? t[lang].analyzing : t[lang].getAiInsights}
                 </button>
                 {aiAnalysis && (
                   <div className="bg-white/5 border border-white/10 rounded-lg p-3 text-[10px] leading-relaxed text-white/70 italic whitespace-pre-wrap">
                     <div className="flex justify-between mb-1 border-b border-white/5 pb-1">
-                      <span className="text-amber-500 font-black uppercase">AI Insights</span>
+                      <span className="text-amber-500 font-black uppercase">{t[lang].aiInsightsTitle}</span>
                       <button onClick={() => setAiAnalysis(null)} className="opacity-40 hover:opacity-100">✕</button>
                     </div>
                     {aiAnalysis}
@@ -458,28 +467,28 @@ Keep the technical terminology accurate but the explanation clear for field oper
              </section>
 
              <section className="space-y-3">
-                <h3 className="text-[10px] text-white/40 uppercase font-bold">Manage Manifest</h3>
+                <h3 className="text-[10px] text-white/40 uppercase font-bold">{t[lang].manageManifest}</h3>
                 <button onClick={() => setShowPasteModal(true)} className="w-full bg-slate-800 border border-slate-700 hover:border-amber-500 rounded py-2.5 text-xs font-bold flex items-center justify-center gap-2">
-                  <FileText size={14} className="text-amber-500" /> Import Excel Data
+                  <FileText size={14} className="text-amber-500" /> {t[lang].importExcel}
                 </button>
              </section>
 
              <section className="space-y-3">
-                <h3 className="text-[10px] text-white/40 uppercase font-bold">Add Individual Item</h3>
-                <input placeholder="Item Type" className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.type} onChange={e => setNewItem({...newItem, type: e.target.value})} />
-                <input placeholder="Serial Number" className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.serialNumber} onChange={e => setNewItem({...newItem, serialNumber: e.target.value})} />
+                <h3 className="text-[10px] text-white/40 uppercase font-bold">{t[lang].addIndividualItem}</h3>
+                <input placeholder={t[lang].itemType} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.type} onChange={e => setNewItem({...newItem, type: e.target.value})} />
+                <input placeholder={t[lang].serialNumber} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.serialNumber} onChange={e => setNewItem({...newItem, serialNumber: e.target.value})} />
                 <div className="grid grid-cols-2 gap-2">
-                  <input type="number" placeholder="L (cm)" className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.length || ''} onChange={e => setNewItem({...newItem, length: Number(e.target.value)})} />
-                  <input type="number" placeholder="W (cm)" className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.width || ''} onChange={e => setNewItem({...newItem, width: Number(e.target.value)})} />
+                  <input type="number" placeholder={t[lang].length} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.length || ''} onChange={e => setNewItem({...newItem, length: Number(e.target.value)})} />
+                  <input type="number" placeholder={t[lang].width} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.width || ''} onChange={e => setNewItem({...newItem, width: Number(e.target.value)})} />
                 </div>
-                <input type="number" placeholder="Weight (kg)" className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.weight || ''} onChange={e => setNewItem({...newItem, weight: Number(e.target.value)})} />
-                <button onClick={handleAddItem} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-2.5 rounded text-sm transition-all">Add to Manifest</button>
+                <input type="number" placeholder={t[lang].weight} className="w-full bg-slate-800 border border-slate-700 rounded px-3 py-2 text-sm outline-none focus:border-amber-500" value={newItem.weight || ''} onChange={e => setNewItem({...newItem, weight: Number(e.target.value)})} />
+                <button onClick={handleAddItem} className="w-full bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-2.5 rounded text-sm transition-all">{t[lang].addToManifest}</button>
              </section>
 
              <section className="flex-1 overflow-hidden flex flex-col min-h-[200px]">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-[10px] text-white/40 uppercase font-bold">Loadlist ({cargo.length})</h3>
-                  <button onClick={handleClearAll} className="text-[10px] text-white font-bold uppercase px-3 py-1 rounded bg-[#a05b19] hover:bg-[#8a4e15] shadow-lg transition-all">Clear All</button>
+                  <h3 className="text-[10px] text-white/40 uppercase font-bold">{t[lang].loadlist} ({cargo.length})</h3>
+                  <button onClick={handleClearAll} className="text-[10px] text-white font-bold uppercase px-3 py-1 rounded bg-[#a05b19] hover:bg-[#8a4e15] shadow-lg transition-all">{t[lang].clearAll}</button>
                 </div>
                 <div className="space-y-6 overflow-y-auto flex-1 pr-2 scrollbar-hide">
                   {trailers.map((trailer, tIdx) => (
@@ -490,7 +499,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
                     >
                       <div className="flex items-center gap-2 px-1 py-1">
                         <Truck size={12} className={draggedItemId ? 'text-amber-400 animate-pulse' : 'text-amber-500'} />
-                        <h4 className={`text-[10px] uppercase font-black tracking-wider transition-colors ${draggedItemId ? 'text-amber-400' : 'text-amber-500/80'}`}>Trailer {tIdx + 1}</h4>
+                        <h4 className={`text-[10px] uppercase font-black tracking-wider transition-colors ${draggedItemId ? 'text-amber-400' : 'text-amber-500/80'}`}>{t[lang].trailer} {tIdx + 1}</h4>
                         <div className="flex-1 h-px bg-slate-700/50"></div>
                       </div>
                       <div className="space-y-1.5 pl-3 border-l border-slate-800 ml-1">
@@ -516,7 +525,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
                     </motion.div>
                         ))}
                         {trailer.items.length === 0 && (
-                          <p className="text-[9px] text-slate-600 italic py-1 pl-2">Empty deck</p>
+                          <p className="text-[9px] text-slate-600 italic py-1 pl-2">{t[lang].emptyDeck}</p>
                         )}
                       </div>
                     </div>
@@ -537,17 +546,17 @@ Keep the technical terminology accurate but the explanation clear for field oper
       <main className="flex-1 flex flex-col bg-[#F0F2F5] p-8 overflow-y-auto">
         <header className="flex justify-between items-end mb-8">
            <div>
-              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">PROJECT: {projectName.toUpperCase()}</p>
+              <p className="text-[11px] text-gray-500 uppercase tracking-widest font-bold mb-1">{t[lang].projectName} {projectName.toUpperCase()}</p>
               <h2 className="text-3xl font-black text-slate-900 flex items-center gap-4">
-                Deck Master Plan
+                {t[lang].deckMasterPlan}
                 <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 px-3 shadow-sm">
                    <div className="flex flex-col items-center">
-                     <span className="text-[9px] text-gray-400 font-bold uppercase">L</span>
+                     <span className="text-[9px] text-gray-400 font-bold uppercase">{t[lang].length.split(' ')[0]}</span>
                      <input type="number" value={trailerLength} onChange={(e) => setTrailerLength(Number(e.target.value))} className="bg-transparent font-mono text-sm font-black w-14 text-center outline-none" />
                    </div>
                    <div className="w-px h-6 bg-gray-100 mx-1"></div>
                    <div className="flex flex-col items-center">
-                     <span className="text-[9px] text-gray-400 font-bold uppercase">W</span>
+                     <span className="text-[9px] text-gray-400 font-bold uppercase">{t[lang].width.split(' ')[0]}</span>
                      <input type="number" value={trailerWidth} onChange={(e) => setTrailerWidth(Number(e.target.value))} className="bg-transparent font-mono text-sm font-black w-10 text-center outline-none" />
                    </div>
                    <div className="w-px h-6 bg-gray-100 mx-1"></div>
@@ -560,22 +569,22 @@ Keep the technical terminology accurate but the explanation clear for field oper
                      onClick={() => setAllowOverhang(!allowOverhang)}
                      className={`flex flex-col items-center px-2 py-1 rounded transition-colors ${allowOverhang ? 'bg-amber-50' : 'bg-gray-50'}`}
                    >
-                     <span className="text-[8px] text-gray-400 font-bold uppercase">Overhang</span>
+                     <span className="text-[8px] text-gray-400 font-bold uppercase">{t[lang].overhang}</span>
                      <span className={`text-[10px] font-black ${allowOverhang ? 'text-amber-600' : 'text-gray-400'}`}>{allowOverhang ? '1.5M / 70% / 3" GAP' : 'OFF'}</span>
                    </button>
                 </div>
               </h2>
            </div>
            <div className="flex gap-3 no-print">
-              <button onClick={handlePrint} className="bg-white border border-gray-200 px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-50"><Printer size={16} /> Print</button>
+              <button onClick={handlePrint} className="bg-white border border-gray-200 px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-gray-50"><Printer size={16} /> {t[lang].print}</button>
               <button disabled={isExporting} onClick={handleDownloadPDF} className="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 hover:bg-blue-700 disabled:opacity-50">
-                {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} PDF
+                {isExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />} {t[lang].pdf}
               </button>
            </div>
         </header>
 
         <div ref={reportRef} className="flex-1 space-y-8">
-          {trailers.map(trailer => {
+          {trailers.map((trailer, tIdx) => {
             const meta = trailerMetadata[trailer.id] || { license: '', driverName: '', driverPhone: '' };
             const updateMeta = (f: keyof typeof meta, v: string) => setTrailerMetadata(p => ({...p, [trailer.id]: {...meta, [f]: v}}));
             return (
@@ -585,20 +594,20 @@ Keep the technical terminology accurate but the explanation clear for field oper
                       <div className="w-12 h-12 bg-slate-50 border border-gray-100 rounded-xl flex items-center justify-center text-slate-400"><Truck size={24} /></div>
                       <div className="flex-1">
                          <div className="flex items-center mb-1">
-                            <h4 className="font-black text-slate-900 mr-8">{trailer.id}</h4>
+                            <h4 className="font-black text-slate-900 mr-8">{t[lang].trailer} {tIdx + 1}</h4>
                             <div className="flex items-center gap-4 no-print flex-1">
-                               <input placeholder="License" className="bg-slate-50 border p-1 px-2 rounded text-[10px] w-32" value={meta.license} onChange={e => updateMeta('license', e.target.value)} />
-                               <input placeholder="Driver" className="bg-slate-50 border p-1 px-2 rounded text-[10px] w-32" value={meta.driverName} onChange={e => updateMeta('driverName', e.target.value)} />
-                               <input placeholder="Phone" className="bg-slate-50 border p-1 px-2 rounded text-[10px] w-32" value={meta.driverPhone} onChange={e => updateMeta('driverPhone', e.target.value)} />
+                               <input placeholder={t[lang].license} className="bg-slate-50 border p-1 px-2 rounded text-[10px] w-32" value={meta.license} onChange={e => updateMeta('license', e.target.value)} />
+                               <input placeholder={t[lang].driver} className="bg-slate-50 border p-1 px-2 rounded text-[10px] w-32" value={meta.driverName} onChange={e => updateMeta('driverName', e.target.value)} />
+                               <input placeholder={t[lang].phone} className="bg-slate-50 border p-1 px-2 rounded text-[10px] w-32" value={meta.driverPhone} onChange={e => updateMeta('driverPhone', e.target.value)} />
                             </div>
                          </div>
                          <div className="hidden print:flex gap-4 text-[10px] text-slate-600 font-bold mb-1">
-                           <span>ทะเบียน: {meta.license || '-'}</span>
-                           <span>คนขับ: {meta.driverName || '-'}</span>
-                           <span>โทร: {meta.driverPhone || '-'}</span>
+                           <span>{t[lang].licenseLabel} {meta.license || '-'}</span>
+                           <span>{t[lang].driverLabel} {meta.driverName || '-'}</span>
+                           <span>{t[lang].phoneLabel} {meta.driverPhone || '-'}</span>
                          </div>
                          <div className="text-[10px] text-gray-400 font-bold">
-                            {trailer.items.length} Units | {trailer.width}x{trailer.length} cm Bed | Payload: {trailer.totalWeight} / {trailer.capacity} kg
+                            {trailer.items.length} {t[lang].units} | {trailer.width}x{trailer.length} cm {t[lang].bed} | {t[lang].payload}: {trailer.totalWeight} / {trailer.capacity} kg
                          </div>
                       </div>
                    </div>
@@ -656,10 +665,10 @@ Keep the technical terminology accurate but the explanation clear for field oper
                             <div className="absolute -bottom-6 left-0 w-full flex flex-col items-center gap-0.5">
                               <div className="flex gap-1 items-center">
                                 <span className={`text-[8px] font-black px-1 rounded shadow-sm whitespace-nowrap ${supportPct < 70 ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-800 text-white'}`}>
-                                  SUPPORT {supportPct.toFixed(0)}%
+                                  {t[lang].support} {supportPct.toFixed(0)}%
                                 </span>
                                 <span className={`text-[8px] font-black px-1 rounded shadow-sm whitespace-nowrap border ${overhangDist > 150 ? 'bg-red-600 text-white border-red-400 animate-pulse' : 'bg-amber-500 text-slate-900 border-amber-600'}`}>
-                                  OH {(overhangDist/100).toFixed(2)}m
+                                  {t[lang].overhangDist} {(overhangDist/100).toFixed(2)}m
                                 </span>
                               </div>
                             </div>
@@ -696,7 +705,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
 
                 <div className="px-8 py-4 bg-gray-50/50 border-t border-gray-100 text-[10px]">
                   <table className="w-full text-left">
-                    <thead className="text-gray-400 uppercase font-black"><tr className="border-b border-gray-200"><th>Series</th><th>Type</th><th className="text-right">Dim (cm)</th><th className="text-right">Weight (kg)</th><th className="text-right no-print">Action</th></tr></thead>
+                    <thead className="text-gray-400 uppercase font-black"><tr className="border-b border-gray-200"><th>{t[lang].series}</th><th>{t[lang].type}</th><th className="text-right">{t[lang].dim}</th><th className="text-right">{t[lang].weight}</th><th className="text-right no-print">{t[lang].action}</th></tr></thead>
                     <tbody>
                       {trailer.items.map(item => (
                         <tr key={item.id} className="border-b border-gray-100 last:border-0 hover:bg-white/50">
@@ -706,9 +715,9 @@ Keep the technical terminology accurate but the explanation clear for field oper
                           <td className="text-right">{item.weight}</td>
                           <td className="text-right no-print">
                             <div className="flex justify-end gap-2">
-                              <button onClick={() => handleMoveItemToTrailer(item.id, 'prev')} className="text-slate-400 hover:text-slate-600 font-bold">Prev</button>
-                              <button onClick={() => handleMoveItemToTrailer(item.id, 'next')} className="text-slate-400 hover:text-slate-600 font-bold">Next</button>
-                              <button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-600 font-bold ml-2">Delete</button>
+                              <button onClick={() => handleMoveItemToTrailer(item.id, 'prev')} className="text-slate-400 hover:text-slate-600 font-bold">{t[lang].prev}</button>
+                              <button onClick={() => handleMoveItemToTrailer(item.id, 'next')} className="text-slate-400 hover:text-slate-600 font-bold">{t[lang].next}</button>
+                              <button onClick={() => handleRemoveItem(item.id)} className="text-red-400 hover:text-red-600 font-bold ml-2">{t[lang].delete}</button>
                             </div>
                           </td>
                         </tr>
@@ -719,33 +728,33 @@ Keep the technical terminology accurate but the explanation clear for field oper
                 <div className="px-8 py-6 bg-slate-50 border-t border-gray-100 grid grid-cols-2 lg:grid-cols-4 gap-6 no-print">
                    <div className="space-y-2">
                       <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                        <Shield className="text-amber-500" size={12} /> SLB LOAD SECUREMENT GUIDELINES
+                        <Shield className="text-amber-500" size={12} /> {t[lang].slbGuidelines}
                       </h5>
                       <ul className="text-[9px] text-slate-600 font-bold space-y-1">
-                        <li className="flex gap-2"><span>•</span> <span>WLL of tie-downs must be ≥ 50% of cargo weight.</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>60/50 Weight distribution rule applies to deck center.</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>Minimum 2 tie-downs per cargo item.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].wllReq}</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].weightDistRule}</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].minTieDowns}</span></li>
                       </ul>
                    </div>
                    <div className="space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">BLOCKING & BRACING</h5>
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{t[lang].blockingBracing}</h5>
                       <ul className="text-[9px] text-slate-600 font-bold space-y-1">
-                        <li className="flex gap-2"><span>•</span> <span>Place cargo against headboard if possible for 50% G-force resistance.</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>Use timber blocks/chocks for all wheeled or skidded units.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].blockingHeadboard}</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].blockingTimber}</span></li>
                       </ul>
                    </div>
                    <div className="space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">OVERHANG RULES</h5>
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{t[lang].overhangRules}</h5>
                       <ul className="text-[9px] text-slate-600 font-bold space-y-1">
-                        <li className="flex gap-2"><span>•</span> <span>Max OH 1.5M absolute. Support must be ≥ 70% of item length.</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>Flags/Lights required for any overhang &gt; 1.2M.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].maxOH}</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].flagLights}</span></li>
                       </ul>
                    </div>
                    <div className="space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">LIFTING OPERATIONS</h5>
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{t[lang].liftingOperations}</h5>
                       <ul className="text-[9px] text-slate-600 font-bold space-y-1">
-                        <li className="flex gap-2"><span>•</span> <span>3-inch (7.6cm) safety gap required between all units for rigging.</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>Ensure clear path for crane hooks and slings.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].safetyGap}</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>{t[lang].cranePath}</span></li>
                       </ul>
                    </div>
                 </div>
@@ -761,15 +770,15 @@ Keep the technical terminology accurate but the explanation clear for field oper
             <motion.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} onClick={()=>setShowPasteModal(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
             <motion.div initial={{opacity:0, scale:0.95}} animate={{opacity:1, scale:1}} exit={{opacity:0, scale:0.95}} className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
               <div className="px-10 py-8 border-b border-gray-100">
-                <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3"><Maximize2 className="text-amber-500" /> Spreadsheet Import</h2>
-                <p className="text-sm text-gray-500 mt-2">Required order: <span className="font-mono text-blue-600 font-bold text-xs">Type | Serial | Length | Width | Weight</span></p>
+                <h2 className="text-2xl font-black text-slate-900 flex items-center gap-3"><Maximize2 className="text-amber-500" /> {t[lang].spreadsheetImport}</h2>
+                <p className="text-sm text-gray-500 mt-2">{t[lang].requiredOrder} <span className="font-mono text-blue-600 font-bold text-xs">Type | Serial | Length | Width | Weight</span></p>
               </div>
               <div className="p-8"><textarea className="w-full h-64 border-2 border-slate-100 bg-slate-50/50 rounded-2xl p-6 font-mono text-sm outline-none focus:border-amber-500 focus:bg-white transition-all shadow-inner" placeholder="Workshop Container	09-009	Testing	COSL GIFT	490	244..." value={pasteValue} onChange={e => setPasteValue(e.target.value)} /></div>
               <div className="px-10 py-6 bg-slate-50 flex justify-between items-center">
-                <span className="text-[10px] text-slate-400 font-bold uppercase">Units: {pasteValue.split('\n').filter(l=>l.trim()).length}</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase">{t[lang].units}: {pasteValue.split('\n').filter(l=>l.trim()).length}</span>
                 <div className="flex gap-3">
-                  <button onClick={()=>setShowPasteModal(false)} className="text-sm font-bold text-slate-400">Cancel</button>
-                  <button disabled={!pasteValue.trim()} onClick={handlePasteData} className="bg-slate-900 text-white rounded-xl px-10 py-2.5 text-sm font-bold disabled:opacity-50">Import Manifest</button>
+                  <button onClick={()=>setShowPasteModal(false)} className="text-sm font-bold text-slate-400">{t[lang].cancel}</button>
+                  <button disabled={!pasteValue.trim()} onClick={handlePasteData} className="bg-slate-900 text-white rounded-xl px-10 py-2.5 text-sm font-bold disabled:opacity-50">{t[lang].importManifest}</button>
                 </div>
               </div>
             </motion.div>
