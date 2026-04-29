@@ -272,136 +272,84 @@ Keep the technical terminology accurate but the explanation clear for field oper
     setIsExporting(true);
     
     try {
-      // Allow UI to stabilize and ensure fonts are ready
-      await new Promise(r => setTimeout(r, 800));
-      const pdf = new jsPDF({ 
-        orientation: 'portrait', 
-        unit: 'mm', 
-        format: 'a4',
-        compress: true 
-      });
+      // Allow UI to stabilize
+      await new Promise(r => setTimeout(r, 600));
+      const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
       
-      const trailersList = reportRef.current.querySelectorAll('.trailer-card');
-      const totalPages = Math.ceil(trailersList.length / 2);
+      // Capture all major report sections
+      const sections = reportRef.current.querySelectorAll('.trailer-card, .ai-insights-section, .guidelines-section');
+      const sectionsArray = Array.from(sections);
       
-      for (let i = 0; i < trailersList.length; i += 2) {
+      for (let i = 0; i < sectionsArray.length; i += 2) {
         if (i > 0) pdf.addPage('a4', 'p');
-        
         const pageNum = Math.floor(i / 2) + 1;
+        const totalPagesPred = Math.ceil(sectionsArray.length / 2);
         
-        // Page Header
         pdf.setFontSize(14);
         pdf.setTextColor(30, 41, 59);
-        pdf.setFont('helvetica', 'bold');
         pdf.text(`PROJECT: ${projectName.toUpperCase()}`, 15, 12);
-        
         pdf.setFontSize(9);
         pdf.setTextColor(100, 116, 139);
-        pdf.text(`Loading Deck Plan - Page ${pageNum}/${totalPages} | Date: ${new Date().toLocaleDateString()}`, 15, 17);
+        pdf.text(`Loading Deck Plan - Page ${pageNum}/${totalPagesPred} | Date: ${new Date().toLocaleDateString()}`, 15, 17);
 
-        // Utility to capture element
         const capture = async (el: HTMLElement) => {
           return await html2canvas(el, {
-            scale: 2.5,
+            scale: 2.0,
             useCORS: true,
             logging: false,
             allowTaint: true,
             backgroundColor: '#FFFFFF',
             onclone: (clonedDoc) => {
-              clonedDoc.documentElement.style.width = '5000px';
-              clonedDoc.body.style.width = '5000px';
-              clonedDoc.body.style.overflow = 'visible';
-              
-              const cards = clonedDoc.querySelectorAll('.trailer-card');
-              cards.forEach(card => {
-                (card as HTMLElement).style.overflow = 'visible';
-                (card as HTMLElement).style.width = 'fit-content';
-                (card as HTMLElement).style.minWidth = 'fit-content';
-                (card as HTMLElement).style.boxShadow = 'none';
-              });
-
-              const scrollCaps = clonedDoc.querySelectorAll('.overflow-x-auto');
-              scrollCaps.forEach(cap => {
-                (cap as HTMLElement).style.overflow = 'visible';
-                (cap as HTMLElement).style.width = 'fit-content';
-                (cap as HTMLElement).style.display = 'block';
-              });
-
               const allElements = clonedDoc.getElementsByTagName('*');
               for (let j = 0; j < allElements.length; j++) {
-                const el = allElements[j] as HTMLElement;
-                const style = window.getComputedStyle(el);
+                const subEl = allElements[j] as HTMLElement;
+                if (subEl.classList.contains('no-print')) subEl.style.display = 'none';
+                if (subEl.classList.contains('print:flex')) subEl.style.display = 'flex';
+                if (subEl.classList.contains('print:block')) subEl.style.display = 'block';
+
+                const style = window.getComputedStyle(subEl);
                 const isModern = (v: string) => v.includes('oklch') || v.includes('oklab');
-                if (isModern(style.color)) el.style.color = '#1e293b';
-                if (isModern(style.backgroundColor)) el.style.backgroundColor = '#ffffff';
-                if (isModern(style.borderColor)) el.style.borderColor = '#e2e8f0';
-                if (isModern(style.boxShadow)) el.style.boxShadow = 'none';
+                if (isModern(style.color)) subEl.style.color = '#1e293b';
+                if (isModern(style.backgroundColor)) subEl.style.backgroundColor = '#ffffff';
 
-                if (el.tagName === 'P' || el.tagName === 'SPAN') {
-                  el.style.display = 'block'; el.style.lineHeight = '1.1'; el.style.overflow = 'visible'; el.style.height = 'auto';
-                }
-                
-                if (el instanceof HTMLInputElement && el.value) {
-                  const text = clonedDoc.createElement('span');
-                  text.innerText = el.value; 
-                  text.style.fontSize = (el.classList.contains('text-[10px]')) ? '12px' : '26px'; 
-                  text.style.fontWeight = 'bold';
-                  el.parentNode?.replaceChild(text, el);
-                }
-
-                // Force print labels to show in PDF and hide no-print elements
-                if (el.classList.contains('print:flex')) {
-                  el.style.display = 'flex';
-                  el.style.visibility = 'visible';
-                  el.style.marginBottom = '8px'; // Add some space
-                }
-                if (el.classList.contains('no-print')) {
-                  el.style.display = 'none';
+                if (subEl instanceof HTMLInputElement && subEl.value) {
+                  const span = clonedDoc.createElement('span');
+                  span.innerText = subEl.value;
+                  span.style.fontSize = '12px';
+                  span.style.fontWeight = 'bold';
+                  subEl.parentNode?.replaceChild(span, subEl);
                 }
               }
             }
           });
         };
 
-        // Capture first trailer
-        const canvas1 = await capture(trailersList[i] as HTMLElement);
+        const canvas1 = await capture(sectionsArray[i] as HTMLElement);
         const imgData1 = canvas1.toDataURL('image/jpeg', 0.85);
         const imgProps1 = pdf.getImageProperties(imgData1);
-        
-        let pdfW = 180; // Fit portrait width
+        let pdfW = 180;
         let pdfH1 = (imgProps1.height * pdfW) / imgProps1.width;
-        
-        // Handle second trailer if any
-        let imgData2 = null;
-        let pdfH2 = 0;
-        if (i + 1 < trailersList.length) {
-          const canvas2 = await capture(trailersList[i+1] as HTMLElement);
-          imgData2 = canvas2.toDataURL('image/jpeg', 0.85);
-          const imgProps2 = pdf.getImageProperties(imgData2);
-          pdfH2 = (imgProps2.height * pdfW) / imgProps2.width;
 
-          // If total height exceeds page (297mm), scale down
-          const totalH = 22 + pdfH1 + 5 + pdfH2;
-          if (totalH > 270) {
-            const factor = 243 / (pdfH1 + pdfH2);
-            pdfW *= factor;
-            pdfH1 *= factor;
-            pdfH2 *= factor;
+        if (i + 1 < sectionsArray.length) {
+          const canvas2 = await capture(sectionsArray[i+1] as HTMLElement);
+          const imgData2 = canvas2.toDataURL('image/jpeg', 0.85);
+          const imgProps2 = pdf.getImageProperties(imgData2);
+          let pdfH2 = (imgProps2.height * pdfW) / imgProps2.width;
+
+          if (22 + pdfH1 + 10 + pdfH2 > 270) {
+            const factor = 240 / (pdfH1 + pdfH2);
+            pdfH1 *= factor; pdfH2 *= factor; pdfW *= factor;
           }
-          
           pdf.addImage(imgData1, 'JPEG', 15, 22, pdfW, pdfH1);
-          pdf.addImage(imgData2, 'JPEG', 15, 22 + pdfH1 + 5, pdfW, pdfH2);
+          pdf.addImage(imgData2, 'JPEG', 15, 22 + pdfH1 + 10, pdfW, pdfH2);
         } else {
-          // Only one trailer on this page
           if (pdfH1 > 250) {
             const factor = 250 / pdfH1;
-            pdfW *= factor;
-            pdfH1 *= factor;
+            pdfH1 *= factor; pdfW *= factor;
           }
           pdf.addImage(imgData1, 'JPEG', 15, 22, pdfW, pdfH1);
         }
       }
-      
       pdf.save(`${projectName.replace(/\s+/g, '_')}_LOAD_PLAN.pdf`);
     } catch (error: any) {
       console.error('PDF Export Error:', error);
@@ -583,7 +531,22 @@ Keep the technical terminology accurate but the explanation clear for field oper
            </div>
         </header>
 
-        <div ref={reportRef} className="flex-1 space-y-8">
+        <div ref={reportRef} className="flex-1 space-y-8 p-1 sm:p-4 md:p-8 bg-[#F0F2F5]">
+          <div className="hidden print:block mb-8 border-b-2 border-slate-900 pb-4">
+             <div className="flex justify-between items-start">
+               <div>
+                 <h1 className="text-3xl font-black text-slate-900 uppercase leading-none">{t[lang].deckMasterPlan}</h1>
+                 <p className="text-sm font-bold text-slate-500 mt-2">{t[lang].projectName} {projectName || '-'}</p>
+               </div>
+               <div className="text-right">
+                 <p className="text-[10px] font-bold text-slate-400">DATE: {new Date().toLocaleDateString()}</p>
+                 <div className="mt-2 text-xs font-black bg-slate-900 text-white px-3 py-1 rounded inline-block">
+                    {trailerWidth}cm x {trailerLength}cm BED
+                 </div>
+               </div>
+             </div>
+          </div>
+
           {trailers.map((trailer, tIdx) => {
             const meta = trailerMetadata[trailer.id] || { license: '', driverName: '', driverPhone: '' };
             const updateMeta = (f: keyof typeof meta, v: string) => setTrailerMetadata(p => ({...p, [trailer.id]: {...meta, [f]: v}}));
@@ -601,13 +564,15 @@ Keep the technical terminology accurate but the explanation clear for field oper
                                <input placeholder={t[lang].phone} className="bg-slate-50 border p-1 px-2 rounded text-[10px] w-32" value={meta.driverPhone} onChange={e => updateMeta('driverPhone', e.target.value)} />
                             </div>
                          </div>
-                         <div className="hidden print:flex gap-4 text-[10px] text-slate-600 font-bold mb-1">
-                           <span>{t[lang].licenseLabel} {meta.license || '-'}</span>
-                           <span>{t[lang].driverLabel} {meta.driverName || '-'}</span>
-                           <span>{t[lang].phoneLabel} {meta.driverPhone || '-'}</span>
+                         <div className="hidden print:flex gap-4 text-[10px] text-slate-700 font-bold mb-1.5 p-1.5 bg-slate-50 rounded border border-slate-100">
+                           <div className="flex items-center gap-1"><span className="text-slate-400">{t[lang].licenseLabel}</span> {meta.license || '-'}</div>
+                           <div className="flex items-center gap-1"><span className="text-slate-400">{t[lang].driverLabel}</span> {meta.driverName || '-'}</div>
+                           <div className="flex items-center gap-1"><span className="text-slate-400">{t[lang].phoneLabel}</span> {meta.driverPhone || '-'}</div>
                          </div>
-                         <div className="text-[10px] text-gray-400 font-bold">
-                            {trailer.items.length} {t[lang].units} | {trailer.width}x{trailer.length} cm {t[lang].bed} | {t[lang].payload}: {trailer.totalWeight} / {trailer.capacity} kg
+                         <div className="text-[10px] text-slate-500 font-bold flex flex-wrap gap-x-4 gap-y-1 items-center">
+                            <span className="flex items-center gap-1"><Box size={10} className="text-slate-400" /> {trailer.items.length} {t[lang].units}</span>
+                            <span className="text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 font-black">{trailer.width}x{trailer.length} cm {t[lang].bed}</span>
+                            <span className="flex items-center gap-1"><Hash size={10} className="text-slate-400" /> {t[lang].payload}: {trailer.totalWeight} / {trailer.capacity} kg</span>
                          </div>
                       </div>
                    </div>
@@ -654,20 +619,22 @@ Keep the technical terminology accurate but the explanation clear for field oper
                           }}
                           onDragEnd={(_, inf) => setManualPositions(p => ({...p, [item.id]: {x: dX + (inf.offset.y/0.8), y: dY + (inf.offset.x/0.8)}}))}
                           key={item.id}
-                          className={`absolute border-2 overflow-visible flex flex-col items-center justify-center p-1 cursor-move transition-all active:scale-95 group/cargo
+                          className={`absolute border-2 overflow-visible flex flex-col items-center justify-center p-0.5 cursor-move transition-all active:scale-95 group/cargo
                             ${isB ? 'bg-amber-400 border-amber-600 text-amber-900' : isR ? 'bg-orange-500 border-orange-700 text-white' : isC ? 'bg-blue-500 border-blue-700 text-white' : 'bg-slate-400 border-slate-500 text-slate-900'}`}
                           style={{left: `${dY*0.8}px`, top: `${dX*0.8}px`, width: `${item.length*0.8}px`, height: `${item.width*0.8}px`}}
                         >
-                          <p className="text-[14px] font-black uppercase truncate w-full text-center leading-tight">{item.type}</p>
-                          <p className="text-[11px] font-bold opacity-100 truncate w-full text-center">{item.serialNumber}</p>
+                          <div className="flex flex-col items-center justify-center w-full px-0.5 overflow-hidden text-center pointer-events-none">
+                            <p className="text-[9px] sm:text-[11px] font-black uppercase break-words w-full leading-tight mb-0.5" style={{wordBreak: 'break-all'}}>{item.type}</p>
+                            <p className="text-[8px] sm:text-[9px] font-bold opacity-90 break-all w-full leading-none">{item.serialNumber}</p>
+                          </div>
                           
                           {isOverhanging && (
-                            <div className="absolute -bottom-6 left-0 w-full flex flex-col items-center gap-0.5">
-                              <div className="flex gap-1 items-center">
-                                <span className={`text-[8px] font-black px-1 rounded shadow-sm whitespace-nowrap ${supportPct < 70 ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-800 text-white'}`}>
+                            <div className="absolute -bottom-7 left-0 w-full flex flex-col items-center gap-0.5 pointer-events-none">
+                              <div className="flex gap-1 items-center justify-center">
+                                <span className={`text-[7px] font-black px-1 py-0.5 rounded shadow-sm whitespace-nowrap ${supportPct < 70 ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-800 text-white'}`}>
                                   {t[lang].support} {supportPct.toFixed(0)}%
                                 </span>
-                                <span className={`text-[8px] font-black px-1 rounded shadow-sm whitespace-nowrap border ${overhangDist > 150 ? 'bg-red-600 text-white border-red-400 animate-pulse' : 'bg-amber-500 text-slate-900 border-amber-600'}`}>
+                                <span className={`text-[7px] font-black px-1 py-0.5 rounded shadow-sm whitespace-nowrap border ${overhangDist > 150 ? 'bg-red-600 text-white border-red-400 animate-pulse' : 'bg-amber-500 text-slate-900 border-amber-600'}`}>
                                   {t[lang].overhangDist} {(overhangDist/100).toFixed(2)}m
                                 </span>
                               </div>
@@ -725,42 +692,58 @@ Keep the technical terminology accurate but the explanation clear for field oper
                     </tbody>
                   </table>
                 </div>
-                <div className="px-8 py-6 bg-slate-50 border-t border-gray-100 grid grid-cols-2 lg:grid-cols-4 gap-6 no-print">
-                   <div className="space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                        <Shield className="text-amber-500" size={12} /> {t[lang].slbGuidelines}
-                      </h5>
-                      <ul className="text-[9px] text-slate-600 font-bold space-y-1">
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].wllReq}</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].weightDistRule}</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].minTieDowns}</span></li>
-                      </ul>
-                   </div>
-                   <div className="space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{t[lang].blockingBracing}</h5>
-                      <ul className="text-[9px] text-slate-600 font-bold space-y-1">
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].blockingHeadboard}</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].blockingTimber}</span></li>
-                      </ul>
-                   </div>
-                   <div className="space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{t[lang].overhangRules}</h5>
-                      <ul className="text-[9px] text-slate-600 font-bold space-y-1">
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].maxOH}</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].flagLights}</span></li>
-                      </ul>
-                   </div>
-                   <div className="space-y-2">
-                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{t[lang].liftingOperations}</h5>
-                      <ul className="text-[9px] text-slate-600 font-bold space-y-1">
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].safetyGap}</span></li>
-                        <li className="flex gap-2"><span>•</span> <span>{t[lang].cranePath}</span></li>
-                      </ul>
-                   </div>
-                </div>
               </div>
             );
           })}
+
+          {/* AI Insights Section in PDF/Print */}
+          {aiAnalysis && (
+            <div className="ai-insights-section bg-white border-2 border-amber-100 rounded-2xl p-6 shadow-sm print:shadow-none break-inside-avoid mt-8">
+              <h3 className="text-sm font-black text-amber-600 uppercase mb-4 flex items-center gap-2">
+                <Sparkles size={16} /> {t[lang].aiInsightsTitle}
+              </h3>
+              <div className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap font-medium border-l-4 border-amber-500 pl-4 py-1">
+                {aiAnalysis}
+              </div>
+            </div>
+          )}
+
+          {/* Global Guidelines Section for PDF/Print */}
+          <div className="guidelines-section px-8 py-8 bg-white border border-gray-200 rounded-2xl shadow-xl mt-8">
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+               <div className="space-y-3">
+                  <h5 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-2">
+                    <Shield className="text-amber-500" size={14} /> {t[lang].slbGuidelines}
+                  </h5>
+                  <ul className="text-[10px] text-slate-600 font-bold space-y-2">
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].wllReq}</span></li>
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].weightDistRule}</span></li>
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].minTieDowns}</span></li>
+                  </ul>
+               </div>
+               <div className="space-y-3">
+                  <h5 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-2">{t[lang].blockingBracing}</h5>
+                  <ul className="text-[10px] text-slate-600 font-bold space-y-2">
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].blockingHeadboard}</span></li>
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].blockingTimber}</span></li>
+                  </ul>
+               </div>
+               <div className="space-y-3">
+                  <h5 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-2">{t[lang].overhangRules}</h5>
+                  <ul className="text-[10px] text-slate-600 font-bold space-y-2">
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].maxOH}</span></li>
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].flagLights}</span></li>
+                  </ul>
+               </div>
+               <div className="space-y-3">
+                  <h5 className="text-xs font-black text-slate-900 uppercase tracking-wider flex items-center gap-2 border-b border-gray-100 pb-2">{t[lang].liftingOperations}</h5>
+                  <ul className="text-[10px] text-slate-600 font-bold space-y-2">
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].safetyGap}</span></li>
+                    <li className="flex gap-2"><span>•</span> <span>{t[lang].cranePath}</span></li>
+                  </ul>
+               </div>
+             </div>
+          </div>
         </div>
       </main>
 
