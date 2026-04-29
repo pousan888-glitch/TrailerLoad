@@ -474,34 +474,41 @@ Keep the technical terminology accurate but the explanation clear for field oper
              <section className="flex-1 overflow-hidden flex flex-col min-h-[200px]">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-[10px] text-white/40 uppercase font-bold">Loadlist ({cargo.length})</h3>
-                  <button onClick={handleClearAll} className="text-[10px] text-red-400/60 hover:text-red-400 font-bold uppercase">Clear All</button>
+                  <button onClick={handleClearAll} className="text-[10px] text-white font-bold uppercase px-3 py-1 rounded bg-[#a05b19] hover:bg-[#8a4e15] shadow-lg transition-all">Clear All</button>
                 </div>
                 <div className="space-y-6 overflow-y-auto flex-1 pr-2 scrollbar-hide">
                   {trailers.map((trailer, tIdx) => (
-                    <div key={trailer.id || tIdx} data-trailer-id={trailer.id} className={`trailer-card space-y-2 p-1 rounded-xl transition-colors ${draggedItemId ? 'bg-slate-800/20 ring-1 ring-white/5' : ''}`}>
-                      <div className="flex items-center gap-2 px-1">
-                        <Truck size={12} className="text-amber-500" />
-                        <h4 className="text-[10px] text-amber-500/80 uppercase font-black tracking-wider">Trailer {tIdx + 1}</h4>
+                    <div 
+                      key={trailer.id || tIdx} 
+                      data-trailer-id={trailer.id} 
+                      className={`trailer-card space-y-2 p-1 rounded-xl transition-all ${draggedItemId ? 'bg-slate-800/40 ring-1 ring-amber-500/20 shadow-inner' : ''}`}
+                    >
+                      <div className="flex items-center gap-2 px-1 py-1">
+                        <Truck size={12} className={draggedItemId ? 'text-amber-400 animate-pulse' : 'text-amber-500'} />
+                        <h4 className={`text-[10px] uppercase font-black tracking-wider transition-colors ${draggedItemId ? 'text-amber-400' : 'text-amber-500/80'}`}>Trailer {tIdx + 1}</h4>
                         <div className="flex-1 h-px bg-slate-700/50"></div>
                       </div>
                       <div className="space-y-1.5 pl-3 border-l border-slate-800 ml-1">
                         {trailer.items.map(item => (
-                          <motion.div 
-                            key={item.id} 
-                            drag
-                            dragSnapToOrigin
-                            onDragStart={() => setDraggedItemId(item.id)}
-                            onDragEnd={(e, info) => handleSidebarItemDragEnd(item.id, e, info)}
-                            className={`rounded-lg p-2.5 border flex justify-between items-center group cursor-grab active:cursor-grabbing z-[60] transition-colors ${draggedItemId === item.id ? 'bg-amber-500/20 border-amber-500 scale-105 shadow-lg' : 'bg-slate-800/50 border-slate-700'}`}
-                          >
-                            <div className="min-w-0 pr-2 pointer-events-none">
-                              <p className="text-[11px] font-bold text-white truncate leading-tight">{item.type}</p>
-                              <p className="text-[9px] text-white/40 leading-tight">{item.serialNumber} | {item.length}x{item.width}</p>
-                            </div>
-                            <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white p-1 rounded transition-all relative z-10">
-                              <Trash2 size={10} />
-                            </button>
-                          </motion.div>
+                    <motion.div 
+                      key={item.id} 
+                      drag
+                      dragSnapToOrigin
+                      onDragStart={() => setDraggedItemId(item.id)}
+                      onDragEnd={(e, info) => handleSidebarItemDragEnd(item.id, e, info)}
+                      className={`rounded-lg p-2.5 border flex justify-between items-center group cursor-grab active:cursor-grabbing z-[60] transition-colors ${draggedItemId === item.id ? 'bg-amber-500/30 border-amber-500 scale-105 shadow-xl ring-2 ring-amber-500/50' : 'bg-slate-800/80 border-slate-700 shadow-sm'}`}
+                    >
+                      <div className="min-w-0 pr-2 pointer-events-none">
+                        <div className="flex items-center gap-1.5 mb-0.5">
+                          <div className={`w-1.5 h-1.5 rounded-full ${item.weight && item.weight > 10000 ? 'bg-red-500' : 'bg-amber-500'}`}></div>
+                          <p className="text-[11px] font-black text-white truncate leading-tight uppercase">{item.type}</p>
+                        </div>
+                        <p className="text-[9px] text-white/50 leading-tight font-mono tracking-tighter">{item.serialNumber} • {item.length}x{item.width}cm • {item.weight}kg</p>
+                      </div>
+                      <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white p-1 rounded transition-all relative z-10">
+                        <Trash2 size={10} />
+                      </button>
+                    </motion.div>
                         ))}
                         {trailer.items.length === 0 && (
                           <p className="text-[9px] text-slate-600 italic py-1 pl-2">Empty deck</p>
@@ -599,11 +606,12 @@ Keep the technical terminology accurate but the explanation clear for field oper
                 <div className="p-8 flex items-center justify-center bg-slate-900/5 relative group overflow-x-auto min-h-[400px]">
                   <div className="trailer-bed shadow-2xl relative rounded bg-slate-900 border-4 border-slate-950" style={{width: `${trailer.length*0.8}px`, height: `${trailer.width*0.8}px`, overflow: allowOverhang ? 'visible' : 'hidden'}}>
                     {/* Ruler / Meter Markers */}
-                    <div className="absolute -top-6 left-0 flex w-full no-print">
+                    <div className="absolute -top-7 left-0 flex w-full no-print">
                       {Array.from({ length: Math.floor(trailer.length / 100) + 1 }).map((_, idx) => (
                         <div key={idx} className="absolute flex flex-col items-center" style={{ left: `${idx * 100 * 0.8}px` }}>
-                          <span className="text-[10px] font-black text-slate-400 leading-none mb-1">{idx}</span>
-                          <div className="w-px h-2 bg-slate-400/30"></div>
+                          <span className="text-[9px] font-black text-slate-500 leading-none mb-1">{idx}M</span>
+                          <div className="w-px h-2.5 bg-slate-500/40"></div>
+                          {idx > 0 && <div className="absolute top-4 w-px h-1 bg-slate-500/10" style={{ left: '-40px' }}></div>}
                         </div>
                       ))}
                     </div>
@@ -640,13 +648,15 @@ Keep the technical terminology accurate but the explanation clear for field oper
                           <p className="text-[11px] font-bold opacity-100 truncate w-full text-center">{item.serialNumber}</p>
                           
                           {isOverhanging && (
-                            <div className="absolute -bottom-5 left-0 w-full flex flex-col items-center gap-0.5">
-                              <span className={`text-[9px] font-black px-1 rounded shadow-sm whitespace-nowrap ${supportPct < 70 ? 'bg-red-500 text-white' : 'bg-white text-slate-900'}`}>
-                                SUPPORT: {supportPct.toFixed(0)}%
-                              </span>
-                              <span className="text-[9px] font-black bg-slate-900 text-amber-500 px-1 rounded border border-amber-500/30 whitespace-nowrap">
-                                OH: {(overhangDist/100).toFixed(2)}m
-                              </span>
+                            <div className="absolute -bottom-6 left-0 w-full flex flex-col items-center gap-0.5">
+                              <div className="flex gap-1 items-center">
+                                <span className={`text-[8px] font-black px-1 rounded shadow-sm whitespace-nowrap ${supportPct < 70 ? 'bg-red-600 text-white animate-pulse' : 'bg-slate-800 text-white'}`}>
+                                  SUPPORT {supportPct.toFixed(0)}%
+                                </span>
+                                <span className={`text-[8px] font-black px-1 rounded shadow-sm whitespace-nowrap border ${overhangDist > 150 ? 'bg-red-600 text-white border-red-400 animate-pulse' : 'bg-amber-500 text-slate-900 border-amber-600'}`}>
+                                  OH {(overhangDist/100).toFixed(2)}m
+                                </span>
+                              </div>
                             </div>
                           )}
                           
@@ -700,6 +710,39 @@ Keep the technical terminology accurate but the explanation clear for field oper
                       ))}
                     </tbody>
                   </table>
+                </div>
+                <div className="px-8 py-6 bg-slate-50 border-t border-gray-100 grid grid-cols-2 lg:grid-cols-4 gap-6 no-print">
+                   <div className="space-y-2">
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <Shield className="text-amber-500" size={12} /> SLB LOAD SECUREMENT GUIDELINES
+                      </h5>
+                      <ul className="text-[9px] text-slate-600 font-bold space-y-1">
+                        <li className="flex gap-2"><span>•</span> <span>WLL of tie-downs must be ≥ 50% of cargo weight.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>60/50 Weight distribution rule applies to deck center.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>Minimum 2 tie-downs per cargo item.</span></li>
+                      </ul>
+                   </div>
+                   <div className="space-y-2">
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">BLOCKING & BRACING</h5>
+                      <ul className="text-[9px] text-slate-600 font-bold space-y-1">
+                        <li className="flex gap-2"><span>•</span> <span>Place cargo against headboard if possible for 50% G-force resistance.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>Use timber blocks/chocks for all wheeled or skidded units.</span></li>
+                      </ul>
+                   </div>
+                   <div className="space-y-2">
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">OVERHANG RULES</h5>
+                      <ul className="text-[9px] text-slate-600 font-bold space-y-1">
+                        <li className="flex gap-2"><span>•</span> <span>Max OH 1.5M absolute. Support must be ≥ 70% of item length.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>Flags/Lights required for any overhang &gt; 1.2M.</span></li>
+                      </ul>
+                   </div>
+                   <div className="space-y-2">
+                      <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">LIFTING OPERATIONS</h5>
+                      <ul className="text-[9px] text-slate-600 font-bold space-y-1">
+                        <li className="flex gap-2"><span>•</span> <span>3-inch (7.6cm) safety gap required between all units for rigging.</span></li>
+                        <li className="flex gap-2"><span>•</span> <span>Ensure clear path for crane hooks and slings.</span></li>
+                      </ul>
+                   </div>
                 </div>
               </div>
             );
