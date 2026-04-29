@@ -167,7 +167,7 @@ STRICT SLB SECUREMENT RULES (MANDATORY):
 1. WEIGHT & DISTRIBUTION: 
    - CoG (Center of Gravity): Must be on longitudinal centerline and as low as possible. Heavy items at the bottom.
    - 60/50 Rule: Max 60% weight on center 50% of deck length.
-   - Overhang: Max 1.5 meters from trailer rear. Strictly PROHIBITED to place cargo on the Tail Roller.
+   - Overhang: Max 1.5 meters from trailer rear. STRICT RULE: At least 70% of the cargo length must be supported on the trailer deck. Strictly PROHIBITED to place cargo on the Tail Roller.
    - Blocking: Placing cargo against the front end structure (headboard) or other cargo reduces required tie-down capacity by 50%.
    - Aggregate WLL Calculation: Must calculate and show that Aggregate WLL is at least 50% of the cargo weight.
 
@@ -555,10 +555,20 @@ Keep the technical terminology accurate but the explanation clear for field oper
                       const isB = item.type.toLowerCase().includes('basket');
                       const isR = item.type.toLowerCase().includes('rack');
                       const isC = item.type.toLowerCase().includes('container') || item.type.toLowerCase().includes('ccu');
+                      
+                      const onDeckLength = Math.max(0, trailer.length - dY);
+                      const supportPct = Math.min(100, (onDeckLength / item.length) * 100);
+                      const isOverhanging = dY + item.length > trailer.length;
+                      
                       return (
                         <motion.div
                           drag dragMomentum={false}
-                          dragConstraints={{left:0, top:0, right: (trailer.length + (allowOverhang ? 150 : 0))*0.8 - item.length*0.8, bottom: trailer.width*0.8 - item.width*0.8}}
+                          dragConstraints={{
+                            left: -dY * 0.8, 
+                            top: -dX * 0.8, 
+                            right: (trailer.length + (allowOverhang ? Math.min(150, item.length * 0.3) : 0) - item.length - dY) * 0.8, 
+                            bottom: (trailer.width - item.width - dX) * 0.8
+                          }}
                           onDragEnd={(_, inf) => setManualPositions(p => ({...p, [item.id]: {x: dX + (inf.offset.y/0.8), y: dY + (inf.offset.x/0.8)}}))}
                           key={item.id}
                           className={`absolute border-2 overflow-visible flex flex-col items-center justify-center p-1 cursor-move transition-all active:scale-95 group/cargo
@@ -567,6 +577,14 @@ Keep the technical terminology accurate but the explanation clear for field oper
                         >
                           <p className="text-[14px] font-black uppercase truncate w-full text-center leading-tight">{item.type}</p>
                           <p className="text-[11px] font-bold opacity-100 truncate w-full text-center">{item.serialNumber}</p>
+                          
+                          {isOverhanging && (
+                            <div className="absolute -bottom-5 left-0 w-full flex justify-center">
+                              <span className={`text-[9px] font-black px-1 rounded shadow-sm ${supportPct < 70 ? 'bg-red-500 text-white' : 'bg-white text-slate-900'}`}>
+                                SUPPORT: {supportPct.toFixed(0)}%
+                              </span>
+                            </div>
+                          )}
                           
                           <div className="absolute top-0 right-0 flex gap-0.5 opacity-0 group-hover/cargo:opacity-100 transition-opacity no-print">
                             <button 
