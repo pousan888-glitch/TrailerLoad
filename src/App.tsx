@@ -475,24 +475,38 @@ Keep the technical terminology accurate but the explanation clear for field oper
                   <h3 className="text-[10px] text-white/40 uppercase font-bold">Loadlist ({cargo.length})</h3>
                   <button onClick={handleClearAll} className="text-[10px] text-red-400/60 hover:text-red-400 font-bold uppercase">Clear All</button>
                 </div>
-                <div className="space-y-2 overflow-y-auto flex-1 pr-2 scrollbar-hide">
-                  {cargo.map(item => (
-                    <motion.div 
-                      key={item.id} 
-                      drag
-                      dragSnapToOrigin
-                      onDragStart={() => setDraggedItemId(item.id)}
-                      onDragEnd={(e, info) => handleSidebarItemDragEnd(item.id, e, info)}
-                      className={`rounded-lg p-3 border flex justify-between items-center group cursor-grab active:cursor-grabbing z-[60] transition-colors ${draggedItemId === item.id ? 'bg-amber-500/20 border-amber-500 scale-105 shadow-lg' : 'bg-slate-800/50 border-slate-700'}`}
-                    >
-                      <div className="min-w-0 pr-2 pointer-events-none">
-                        <p className="text-xs font-bold text-white truncate">{item.type}</p>
-                        <p className="text-[10px] text-white/40">{item.serialNumber} | {item.length}x{item.width} | {item.weight}kg</p>
+                <div className="space-y-6 overflow-y-auto flex-1 pr-2 scrollbar-hide">
+                  {trailers.map((trailer, tIdx) => (
+                    <div key={trailer.id || tIdx} data-trailer-id={trailer.id} className={`trailer-card space-y-2 p-1 rounded-xl transition-colors ${draggedItemId ? 'bg-slate-800/20 ring-1 ring-white/5' : ''}`}>
+                      <div className="flex items-center gap-2 px-1">
+                        <Truck size={12} className="text-amber-500" />
+                        <h4 className="text-[10px] text-amber-500/80 uppercase font-black tracking-wider">Trailer {tIdx + 1}</h4>
+                        <div className="flex-1 h-px bg-slate-700/50"></div>
                       </div>
-                      <button onClick={() => handleRemoveItem(item.id)} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-all relative z-10">
-                        <Trash2 size={12} />
-                      </button>
-                    </motion.div>
+                      <div className="space-y-1.5 pl-3 border-l border-slate-800 ml-1">
+                        {trailer.items.map(item => (
+                          <motion.div 
+                            key={item.id} 
+                            drag
+                            dragSnapToOrigin
+                            onDragStart={() => setDraggedItemId(item.id)}
+                            onDragEnd={(e, info) => handleSidebarItemDragEnd(item.id, e, info)}
+                            className={`rounded-lg p-2.5 border flex justify-between items-center group cursor-grab active:cursor-grabbing z-[60] transition-colors ${draggedItemId === item.id ? 'bg-amber-500/20 border-amber-500 scale-105 shadow-lg' : 'bg-slate-800/50 border-slate-700'}`}
+                          >
+                            <div className="min-w-0 pr-2 pointer-events-none">
+                              <p className="text-[11px] font-bold text-white truncate leading-tight">{item.type}</p>
+                              <p className="text-[9px] text-white/40 leading-tight">{item.serialNumber} | {item.length}x{item.width}</p>
+                            </div>
+                            <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white p-1 rounded transition-all relative z-10">
+                              <Trash2 size={10} />
+                            </button>
+                          </motion.div>
+                        ))}
+                        {trailer.items.length === 0 && (
+                          <p className="text-[9px] text-slate-600 italic py-1 pl-2">Empty deck</p>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
              </section>
