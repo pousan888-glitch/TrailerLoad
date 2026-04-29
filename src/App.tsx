@@ -37,9 +37,38 @@ export default function App() {
   const [trailerCapacity, setTrailerCapacity] = useState(25000);
   const [pasteValue, setPasteValue] = useState('');
   const [showPasteModal, setShowPasteModal] = useState(false);
-  const [allowOverhang, setAllowOverhang] = useState(false);
+  const [allowOverhang, setAllowOverhang] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [manualPositions, setManualPositions] = useState<Record<string, { x: number, y: number }>>({});
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+
+  const handleSidebarItemDragEnd = (itemId: string, event: any, info: any) => {
+    setDraggedItemId(null);
+    const x = info.point.x;
+    const y = info.point.y;
+    
+    // Find if we dropped over a trailer card
+    const elements = document.elementsFromPoint(x, y);
+    const trailerCard = elements.find(el => el.classList.contains('trailer-card'));
+    
+    if (trailerCard) {
+      const trailerId = trailerCard.getAttribute('data-trailer-id');
+      if (trailerId) {
+        const trailerIndex = trailers.findIndex(t => t.id === trailerId);
+        if (trailerIndex !== -1) {
+          setCargo(prev => prev.map(item => 
+            item.id === itemId ? { ...item, manualTrailerIndex: trailerIndex } : item
+          ));
+          // Reset position for the newly moved item
+          setManualPositions(pos => {
+            const newPos = { ...pos };
+            delete newPos[itemId];
+            return newPos;
+          });
+        }
+      }
+    }
+  };
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [trailerMetadata, setTrailerMetadata] = useState<Record<string, { license: string, driverName: string, driverPhone: string }>>({});
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
@@ -448,15 +477,22 @@ Keep the technical terminology accurate but the explanation clear for field oper
                 </div>
                 <div className="space-y-2 overflow-y-auto flex-1 pr-2 scrollbar-hide">
                   {cargo.map(item => (
-                    <div key={item.id} className="rounded-lg p-3 bg-slate-800/50 border border-slate-700 flex justify-between items-center group">
-                      <div className="min-w-0 pr-2">
+                    <motion.div 
+                      key={item.id} 
+                      drag
+                      dragSnapToOrigin
+                      onDragStart={() => setDraggedItemId(item.id)}
+                      onDragEnd={(e, info) => handleSidebarItemDragEnd(item.id, e, info)}
+                      className={`rounded-lg p-3 border flex justify-between items-center group cursor-grab active:cursor-grabbing z-[60] transition-colors ${draggedItemId === item.id ? 'bg-amber-500/20 border-amber-500 scale-105 shadow-lg' : 'bg-slate-800/50 border-slate-700'}`}
+                    >
+                      <div className="min-w-0 pr-2 pointer-events-none">
                         <p className="text-xs font-bold text-white truncate">{item.type}</p>
                         <p className="text-[10px] text-white/40">{item.serialNumber} | {item.length}x{item.width} | {item.weight}kg</p>
                       </div>
-                      <button onClick={() => handleRemoveItem(item.id)} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-all">
+                      <button onClick={() => handleRemoveItem(item.id)} className="bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white p-1.5 rounded-lg transition-all relative z-10">
                         <Trash2 size={12} />
                       </button>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
              </section>
@@ -516,7 +552,7 @@ Keep the technical terminology accurate but the explanation clear for field oper
             const meta = trailerMetadata[trailer.id] || { license: '', driverName: '', driverPhone: '' };
             const updateMeta = (f: keyof typeof meta, v: string) => setTrailerMetadata(p => ({...p, [trailer.id]: {...meta, [f]: v}}));
             return (
-              <div key={trailer.id} className="trailer-card bg-white rounded-2xl border border-gray-200 shadow-xl overflow-hidden flex flex-col">
+              <div key={trailer.id} data-trailer-id={trailer.id} className={`trailer-card bg-white rounded-2xl border transition-all overflow-hidden flex flex-col ${draggedItemId ? 'ring-2 ring-amber-500/10 border-amber-200 shadow-amber-900/5' : 'border-gray-200 shadow-xl'}`}>
                 <div className="px-8 py-5 border-b border-gray-100 flex items-center justify-between">
                    <div className="flex items-center gap-4 grow">
                       <div className="w-12 h-12 bg-slate-50 border border-gray-100 rounded-xl flex items-center justify-center text-slate-400"><Truck size={24} /></div>
