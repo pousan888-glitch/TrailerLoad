@@ -20,7 +20,8 @@ import {
   User,
   Hash,
   Sparkles,
-  Loader2
+  Loader2,
+  Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI } from "@google/genai";
@@ -140,26 +141,30 @@ export default function App() {
   };
 
   const handlePasteData = () => {
-    const lines = pasteValue.split('\n');
+    const lines = pasteValue.split('\n').map(l => l.trim()).filter(l => l);
     const newItems: CargoItem[] = [];
     
     lines.forEach(line => {
-      const parts = line.split('\t');
-      if (parts.length >= 4) {
-        const [type, serial, l, w, wt] = parts;
-        const length = parseInt(l);
-        const width = parseInt(w);
-        const weight = parseInt(wt) || 0;
-        if (!isNaN(length) && !isNaN(width)) {
+      // Try tab first, then comma, then semicolon
+      let parts = line.split('\t');
+      if (parts.length < 3) parts = line.split(',');
+      if (parts.length < 3) parts = line.split(';');
+
+      if (parts.length >= 3) {
+        // Some users might have headers, we skip if it's not numbers
+        const potentialL = parseFloat(parts[2]?.replace(/[^\d.]/g, ''));
+        const potentialW = parseFloat(parts[3]?.replace(/[^\d.]/g, ''));
+        
+        if (!isNaN(potentialL) && !isNaN(potentialW)) {
           newItems.push({
-            id: Math.random().toString(36).substr(2, 9),
-            type: type || 'Unknown',
-            serialNumber: serial || '-',
+            id: crypto.randomUUID?.() || Math.random().toString(36).substring(2, 11),
+            type: (parts[0] || 'Item').trim(),
+            serialNumber: (parts[1] || '-').trim(),
             segment: '-',
             rig: '-',
-            length,
-            width,
-            weight
+            length: potentialL,
+            width: potentialW,
+            weight: parseFloat(parts[4]?.replace(/[^\d.]/g, '')) || 0
           });
         }
       }
